@@ -8,6 +8,8 @@ export function Properties() {
   const create = trpc.properties.create.useMutation({
     onSuccess: () => utils.properties.list.invalidate(),
   });
+  const API_URL = "http://localhost:4000"; // temporal: hardcodeado hasta que tengamos dominio de producción
+
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -42,9 +44,18 @@ export function Properties() {
       </form>
       {list.isLoading && <p>Cargando...</p>}
       <ul>
-        {list.data?.map((p) => (
-          <li key={p.id}>{p.title} — {p.zone} — {p.currency} {p.price}</li>
-        ))}
+        {list.data?.map((p) => {
+          const link = `${API_URL}/p/${p.id}`;
+          const texto = encodeURIComponent(`${p.title} — ${p.currency} ${p.price}\n${link}`);
+          return (
+            <li key={p.id}>
+              {p.title} — {p.zone} — {p.currency} {p.price}{" "}
+              <a href={`https://wa.me/?text=${texto}`} target="_blank" rel="noopener noreferrer">
+                Compartir por WhatsApp
+              </a>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
