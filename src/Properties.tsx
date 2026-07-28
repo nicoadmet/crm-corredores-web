@@ -1,6 +1,8 @@
 // Formulario y lista de propiedades de la cuenta logueada.
 import { useState } from "react";
-import { trpc } from "./trpc";
+import imageCompression from "browser-image-compression";
+import { trpc, API_URL } from "./trpc";
+import { supabase } from "./supabase";
 
 export function Properties() {
   const utils = trpc.useUtils();
@@ -8,8 +10,9 @@ export function Properties() {
   const create = trpc.properties.create.useMutation({
     onSuccess: () => utils.properties.list.invalidate(),
   });
-  const API_URL = "http://localhost:4000"; // temporal: hardcodeado hasta que tengamos dominio de producción
-
+  const addImage = trpc.propertyImages.create.useMutation({
+    onSuccess: () => utils.properties.list.invalidate(),
+  });
 
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -23,6 +26,21 @@ export function Properties() {
     setTitle("");
     setPrice("");
     setZone("");
+  }
+
+  // Comprime la foto en el navegador, la sube a Supabase Storage, y guarda la URL en la base.
+  async function handlePhoto(propertyId: string, file: File) {
+    const compressed = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1280 });
+    const path = `${propertyId}/${Date.now()}-${file.name}`;
+
+    const { error } = await supabase.storage.from("property-images").upload(path, compressed);
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const { data } = supabase.storage.from("property-images").getPublicUrl(path);
+    addImage.mutate({ propertyId, url: data.publicUrl });
   }
 
   return (
@@ -49,10 +67,23 @@ export function Properties() {
           const texto = encodeURIComponent(`${p.title} — ${p.currency} ${p.price}\n${link}`);
           return (
             <li key={p.id}>
+              {p.images[0] && (
+                <div>
+                  <img src={p.images[0].url} alt={p.title} style={{ width: 120 }} />
+                </div>
+              )}
               {p.title} — {p.zone} — {p.currency} {p.price}{" "}
               <a href={`https://wa.me/?text=${texto}`} target="_blank" rel="noopener noreferrer">
                 Compartir por WhatsApp
-              </a>
+              </a>{" "}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handlePhoto(p.id, file);
+                }}
+              />
             </li>
           );
         })}
