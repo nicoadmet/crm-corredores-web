@@ -31,7 +31,10 @@ export function Properties() {
   // Comprime la foto en el navegador, la sube a Supabase Storage, y guarda la URL en la base.
   async function handlePhoto(propertyId: string, file: File) {
     const compressed = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1280 });
-    const path = `${propertyId}/${Date.now()}-${file.name}`;
+
+    // Nombre de archivo seguro: ignoramos el nombre original (puede tener emojis/espacios raros).
+    const extension = file.name.split(".").pop()?.replace(/[^a-zA-Z0-9]/g, "") || "jpg";
+    const path = `${propertyId}/${Date.now()}.${extension}`;
 
     const { error } = await supabase.storage.from("property-images").upload(path, compressed);
     if (error) {
@@ -39,9 +42,9 @@ export function Properties() {
       return;
     }
 
-    const { data } = supabase.storage.from("property-images").getPublicUrl(path);
-    addImage.mutate({ propertyId, url: data.publicUrl });
-  }
+  const { data } = supabase.storage.from("property-images").getPublicUrl(path);
+  addImage.mutate({ propertyId, url: data.publicUrl });
+}
 
   return (
     <div>
@@ -68,9 +71,7 @@ export function Properties() {
           return (
             <li key={p.id}>
               {p.images[0] && (
-                <div>
                   <img src={p.images[0].url} alt={p.title} style={{ width: 120 }} />
-                </div>
               )}
               {p.title} — {p.zone} — {p.currency} {p.price}{" "}
               <a href={`https://wa.me/?text=${texto}`} target="_blank" rel="noopener noreferrer">
