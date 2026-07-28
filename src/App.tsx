@@ -8,6 +8,7 @@ import { Auth } from "./Auth";
 import { Properties } from "./Properties";
 import { Leads } from "./Leads";
 import { Matches } from "./Matches";
+import { InstallPrompt } from "./InstallPrompt";
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -32,12 +33,19 @@ function App() {
   if (!session) return <Auth />;
 
   return (
-    <div>
-      <button onClick={() => { queryClient.clear(); supabase.auth.signOut(); }}>Salir</button>
-      <Properties />
-      <Leads />
-      <Matches />
-    </div>
+    <>
+      <InstallPrompt />
+      {!session ? (
+        <Auth />
+      ) : (
+        <div>
+          <button onClick={() => { queryClient.clear(); supabase.auth.signOut(); }}>Salir</button>
+          <Properties />
+          <Leads />
+          <Matches />
+        </div>
+      )}
+    </>
   );
 }
 
