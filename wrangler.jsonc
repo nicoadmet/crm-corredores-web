@@ -1,0 +1,8 @@
+// Configuración de Cloudflare Workers: sirve el build estático (carpeta dist) del frontend.
+{
+  "name": "crm-corredores-web",
+  "compatibility_date": "2026-07-28",
+  "assets": {
+    "directory": "./dist"
+  }
+}
