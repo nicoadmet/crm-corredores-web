@@ -1,6 +1,6 @@
 // Formulario y lista de leads de la cuenta logueada.
 import { useState } from "react";
-import { trpc } from "./trpc";
+import { trpc } from "../trpc";
 
 export function Leads() {
   const utils = trpc.useUtils();

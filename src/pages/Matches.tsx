@@ -1,5 +1,5 @@
 // Botón para generar matches y lista de los matches sugeridos.
-import { trpc } from "./trpc";
+import { trpc } from "../trpc";
 
 export function Matches() {
   const utils = trpc.useUtils();

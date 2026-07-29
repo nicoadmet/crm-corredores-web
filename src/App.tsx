@@ -1,14 +1,14 @@
 // Pantalla principal: login si no hay sesión, o el resto de la app si ya estás logueado.
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { supabase } from "./supabase";
+import { supabase } from "./lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { Auth } from "./Auth";
-import { Properties } from "./Properties";
-import { Leads } from "./Leads";
-import { Matches } from "./Matches";
-import { InstallPrompt } from "./InstallPrompt";
+import { Auth } from "./pages/Auth";
+import { Properties } from "./pages/Properties";
+import { Leads } from "./pages/Leads";
+import { Matches } from "./pages/Matches";
+import { InstallPrompt } from "./components/InstallPrompt";
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);

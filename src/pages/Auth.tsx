@@ -1,6 +1,6 @@
 // Formulario de login y registro con email/password.
 import { useState } from "react";
-import { supabase } from "./supabase";
+import { supabase } from "../lib/supabase";
 
 export function Auth() {
   const [email, setEmail] = useState("");

@@ -1,8 +1,8 @@
 // Formulario y lista de propiedades de la cuenta logueada.
 import { useState } from "react";
 import imageCompression from "browser-image-compression";
-import { trpc, API_URL } from "./trpc";
-import { supabase } from "./supabase";
+import { trpc, API_URL } from "../trpc";
+import { supabase } from "../lib/supabase";
 
 export function Properties() {
   const utils = trpc.useUtils();
