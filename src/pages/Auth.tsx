@@ -1,5 +1,6 @@
 // Formulario de login y registro con email/password.
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 export function Auth() {
@@ -7,6 +8,7 @@ export function Auth() {
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -15,7 +17,11 @@ export function Auth() {
       mode === "login"
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({ email, password });
-    if (error) setError(error.message);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    navigate("/app");
   }
 
   return (
