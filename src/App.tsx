@@ -1,10 +1,15 @@
 // Define las rutas de toda la app: páginas públicas (Home, Pricing, Login)
-// y el área protegida (/app) que exige sesión iniciada.
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+// y el área protegida (/app) con sus subrutas (Properties, Leads, Matches, y el detalle de cada uno).
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Home } from "./pages/Home";
 import { Pricing } from "./pages/Pricing";
 import { Auth } from "./pages/Auth";
 import { ProtectedApp } from "./pages/ProtectedApp";
+import { Properties } from "./pages/Properties";
+import { PropertyDetail } from "./pages/PropertyDetail";
+import { Leads } from "./pages/Leads";
+import { LeadDetail } from "./pages/LeadDetail";
+import { Matches } from "./pages/Matches";
 
 function App() {
   return (
@@ -13,7 +18,14 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/precios" element={<Pricing />} />
         <Route path="/login" element={<Auth />} />
-        <Route path="/app" element={<ProtectedApp />} />
+        <Route path="/app" element={<ProtectedApp />}>
+          <Route index element={<Navigate to="properties" replace />} />
+          <Route path="properties" element={<Properties />} />
+          <Route path="properties/:id" element={<PropertyDetail />} />
+          <Route path="leads" element={<Leads />} />
+          <Route path="leads/:id" element={<LeadDetail />} />
+          <Route path="matches" element={<Matches />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
