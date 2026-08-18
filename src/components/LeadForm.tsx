@@ -16,6 +16,7 @@ export type LeadFormValues = {
   priority: "" | "caliente" | "tibio" | "frio";
   nextFollowUpDate: string;
   notes: string;
+  status: string;
 };
 
 export const emptyLeadForm: LeadFormValues = {
@@ -33,6 +34,7 @@ export const emptyLeadForm: LeadFormValues = {
   priority: "",
   nextFollowUpDate: "",
   notes: "",
+  status: "activo",
 };
 
 export function LeadForm({
@@ -79,6 +81,12 @@ export function LeadForm({
         <select className={inputClass} value={values.propertyType} onChange={(e) => set("propertyType", e.target.value)}>
           <option value="depto">Depto</option>
           <option value="casa">Casa</option>
+        </select>
+        <select className={inputClass} value={values.status} onChange={(e) => set("status", e.target.value)}>
+          <option value="activo">Activo</option>
+          <option value="en_proceso">En proceso</option>
+          <option value="cerrado">Cerrado</option>
+          <option value="perdido">Perdido</option>
         </select>
         <input
           className={inputClass}

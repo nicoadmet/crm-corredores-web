@@ -10,6 +10,14 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Antes el Service Worker era 100% autogenerado ("generateSW", la estrategia default de este
+      // plugin) — no dejaba agregar código propio. Para mostrar las notificaciones push hace falta
+      // escribir el Service Worker nosotros (src/sw.ts). "injectManifest" arma ese archivo pero de
+      // todos modos le inyecta la lista de archivos a cachear offline, así que no se pierde el
+      // comportamiento de PWA que ya había.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       manifest: {
         name: 'CRM Corredores',
         short_name: 'CRM Corredores',

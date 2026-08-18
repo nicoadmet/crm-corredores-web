@@ -47,6 +47,16 @@ export function PropertyDetail() {
         {property.zone} — {property.currency} {property.price}
       </p>
 
+      {property.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {property.tags.map((tag) => (
+            <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
       {property.images[0] && (
         <img
           src={property.images[0].url}
@@ -69,6 +79,34 @@ export function PropertyDetail() {
         )}
         {property.description && <p>Descripción: {property.description}</p>}
       </div>
+
+      {property.priceHistory.length > 0 && (
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <h2 className="text-sm font-semibold text-gray-700 mb-2">Historial de precios</h2>
+          <ul className="flex flex-col gap-1 text-sm text-gray-600">
+            {property.priceHistory.map((entry, i) => {
+              const prev = property.priceHistory[i - 1];
+              const prevPrice = prev ? Number(prev.price) : null;
+              const currentPrice = Number(entry.price);
+              const priceWentUp = prevPrice != null && currentPrice > prevPrice;
+              const priceWentDown = prevPrice != null && currentPrice < prevPrice;
+              return (
+                <li key={entry.id} className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-gray-400">
+                    {new Date(entry.createdAt).toLocaleDateString()}
+                  </span>
+                  <span className="font-medium">
+                    {entry.currency} {entry.price}
+                  </span>
+                  {i === 0 && <span className="text-xs text-gray-400">(precio inicial)</span>}
+                  {priceWentUp && <span className="text-xs text-red-600">↑ subió</span>}
+                  {priceWentDown && <span className="text-xs text-teal-700">↓ bajó</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

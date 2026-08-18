@@ -1,14 +1,17 @@
 // Clasifica el "próximo seguimiento" de un lead según su fecha: vencido, hoy, próximo (≤3 días) o nada.
+// Usa horas UTC (no locales): nextFollowUpDate se guarda como medianoche UTC del día elegido
+// (viene de un <input type="date">, sin hora), así que hay que leerlo de vuelta también en UTC —
+// si acá se usara hora local, en Argentina (UTC-3) cualquier fecha se corre un día para atrás.
 export type FollowUpStatus = "vencido" | "hoy" | "proximo";
 
 export function getFollowUpStatus(date: string | Date | null | undefined): FollowUpStatus | null {
   if (!date) return null;
 
   const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
+  startOfToday.setUTCHours(0, 0, 0, 0);
 
   const startOfTarget = new Date(date);
-  startOfTarget.setHours(0, 0, 0, 0);
+  startOfTarget.setUTCHours(0, 0, 0, 0);
 
   const diffDays = Math.round((startOfTarget.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
 

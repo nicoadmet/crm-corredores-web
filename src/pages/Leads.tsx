@@ -63,6 +63,7 @@ function toFormValues(l: Lead): LeadFormValues {
     priority: (l.priority as LeadFormValues["priority"]) ?? "",
     nextFollowUpDate: l.nextFollowUpDate ? new Date(l.nextFollowUpDate).toISOString().slice(0, 10) : "",
     notes: l.notes ?? "",
+    status: l.status,
   };
 }
 
@@ -79,13 +80,16 @@ function toMutationInput(values: LeadFormValues) {
     propertyType: values.propertyType,
     zones,
     priority: values.priority || undefined,
-    nextFollowUpDate: values.nextFollowUpDate ? new Date(values.nextFollowUpDate) : undefined,
+    // null explícito (no undefined) cuando el campo está vacío: así el backend sabe que hay que
+    // BORRAR la fecha, en vez de simplemente ignorar el campo y dejar la que ya tenía guardada.
+    nextFollowUpDate: values.nextFollowUpDate ? new Date(values.nextFollowUpDate) : null,
     budgetMin: values.budgetMin ? Number(values.budgetMin) : undefined,
     budgetMax: values.budgetMax ? Number(values.budgetMax) : undefined,
     minRooms: values.minRooms ? Number(values.minRooms) : undefined,
     minBathrooms: values.minBathrooms ? Number(values.minBathrooms) : undefined,
     needsGarage: values.needsGarage || undefined,
     notes: values.notes || undefined,
+    status: values.status || undefined,
   };
 }
 
@@ -129,9 +133,12 @@ export function Leads() {
     },
   });
   const update = trpc.leads.update.useMutation({
-    onSuccess: () => {
+    onSuccess: (updatedLead) => {
       utils.leads.list.invalidate();
       utils.leads.followUpSummary.invalidate();
+      // Sin esto, si volvés a la ficha de detalle del lead (LeadDetail.tsx) sin recargar la página,
+      // podía seguir mostrando los datos de antes de editar.
+      utils.leads.getById.invalidate({ id: updatedLead.id });
       setModalOpen(false);
     },
   });

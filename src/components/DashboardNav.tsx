@@ -33,10 +33,45 @@ function MatchesIcon({ className }: { className?: string }) {
   );
 }
 
+function AgendaIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <rect x="3.5" y="5" width="17" height="15" rx="1.5" />
+      <path d="M8 3v4" strokeLinecap="round" />
+      <path d="M16 3v4" strokeLinecap="round" />
+      <path d="M3.5 9.5h17" />
+    </svg>
+  );
+}
+
+function CatalogsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.2" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.2" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.2" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.2" />
+    </svg>
+  );
+}
+
+function StatsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
+      <path d="M4 20V10" strokeLinecap="round" />
+      <path d="M12 20V4" strokeLinecap="round" />
+      <path d="M20 20v-7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const NAV_ITEMS = [
   { to: "/app/properties", label: "Propiedades", icon: PropertiesIcon },
   { to: "/app/leads", label: "Leads", icon: LeadsIcon },
   { to: "/app/matches", label: "Matches", icon: MatchesIcon },
+  { to: "/app/agenda", label: "Agenda", icon: AgendaIcon },
+  { to: "/app/catalogs", label: "Catálogos", icon: CatalogsIcon },
+  { to: "/app/stats", label: "Estadísticas", icon: StatsIcon },
 ];
 
 function NavBadge({ count }: { count: number }) {

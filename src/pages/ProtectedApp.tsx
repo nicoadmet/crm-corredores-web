@@ -9,6 +9,7 @@ import { supabase } from "../lib/supabase";
 import { DashboardTopbar } from "../components/DashboardTopbar";
 import { DashboardNav } from "../components/DashboardNav";
 import { InstallPrompt } from "../components/InstallPrompt";
+import { PushPrompt } from "../components/PushPrompt";
 
 export function ProtectedApp() {
   const [session, setSession] = useState<Session | null>(null);
@@ -39,6 +40,7 @@ export function ProtectedApp() {
   return (
     <div className="min-h-screen bg-white">
       <InstallPrompt />
+      <PushPrompt />
       <DashboardTopbar onLogout={handleLogout} />
       <div className="flex">
         <DashboardNav />

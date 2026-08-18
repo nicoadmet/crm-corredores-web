@@ -23,6 +23,7 @@ export type PropertyFormValues = {
   ownerNotes: string;
   exclusive: boolean;
   exclusiveUntil: string;
+  tagsText: string;
 };
 
 export const emptyPropertyForm: PropertyFormValues = {
@@ -47,6 +48,7 @@ export const emptyPropertyForm: PropertyFormValues = {
   ownerNotes: "",
   exclusive: false,
   exclusiveUntil: "",
+  tagsText: "",
 };
 
 export function PropertyForm({
@@ -143,6 +145,13 @@ export function PropertyForm({
           <input className={inputClass} placeholder="Antigüedad (años, 0 = a estrenar)" type="number" value={values.age} onChange={(e) => set("age", e.target.value)} />
         </div>
         <textarea className={`${inputClass} mt-3`} placeholder="Descripción" value={values.description} onChange={(e) => set("description", e.target.value)} />
+
+        <input
+          className={`${inputClass} mt-3`}
+          placeholder="Etiquetas (separadas por coma, ej: a estrenar, con pileta)"
+          value={values.tagsText}
+          onChange={(e) => set("tagsText", e.target.value)}
+        />
 
         <p className="text-xs text-gray-500 mt-4 mb-2">Datos del propietario (uso interno, no se muestran en la ficha pública):</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

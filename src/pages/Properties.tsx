@@ -1,5 +1,5 @@
 // Lista de propiedades de la cuenta logueada: alta y edición en modal, duplicado, borrado (papelera),
-// paginación y búsqueda/filtros (texto libre + chips de operación/tipo/estado).
+// paginación y búsqueda/filtros (texto libre + chips de operación/tipo/estado/etiqueta).
 import { useState } from "react";
 import imageCompression from "browser-image-compression";
 import { trpc, API_URL } from "../trpc";
@@ -59,6 +59,7 @@ function toFormValues(p: Property): PropertyFormValues {
     ownerNotes: p.ownerNotes ?? "",
     exclusive: p.exclusive,
     exclusiveUntil: p.exclusiveUntil ? new Date(p.exclusiveUntil).toISOString().slice(0, 10) : "",
+    tagsText: p.tags.join(", "),
   };
 }
 
@@ -85,6 +86,10 @@ function toMutationInput(values: PropertyFormValues) {
     ownerNotes: values.ownerNotes || undefined,
     exclusive: values.exclusive,
     exclusiveUntil: values.exclusive && values.exclusiveUntil ? new Date(values.exclusiveUntil) : undefined,
+    tags: values.tagsText
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean),
   };
 }
 
@@ -95,6 +100,7 @@ export function Properties() {
   const [operationFilter, setOperationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const list = trpc.properties.list.useQuery({
@@ -104,7 +110,9 @@ export function Properties() {
     operationType: operationFilter || undefined,
     propertyType: typeFilter || undefined,
     status: statusFilter || undefined,
+    tag: tagFilter || undefined,
   });
+  const topTags = trpc.properties.topTags.useQuery();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Property | null>(null);
@@ -112,25 +120,35 @@ export function Properties() {
   const create = trpc.properties.create.useMutation({
     onSuccess: () => {
       utils.properties.list.invalidate();
+      utils.properties.topTags.invalidate();
       setModalOpen(false);
     },
   });
+
   const update = trpc.properties.update.useMutation({
     onSuccess: () => {
       utils.properties.list.invalidate();
+      utils.properties.topTags.invalidate();
       setModalOpen(false);
     },
   });
+
   const deleteProperty = trpc.properties.delete.useMutation({
-    onSuccess: () => utils.properties.list.invalidate(),
+    onSuccess: () => {
+      utils.properties.list.invalidate();
+      utils.properties.topTags.invalidate();
+    },
   });
+
   const duplicateProperty = trpc.properties.duplicate.useMutation({
     onSuccess: (copy) => {
       utils.properties.list.invalidate();
+      utils.properties.topTags.invalidate();
       setEditing(copy);
       setModalOpen(true);
     },
   });
+
   const addImage = trpc.propertyImages.create.useMutation({
     onSuccess: () => utils.properties.list.invalidate(),
   });
@@ -186,7 +204,8 @@ export function Properties() {
   const items = list.data?.items ?? [];
   const total = list.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const hasFilters = Boolean(search || operationFilter || typeFilter || statusFilter);
+  const tagOptions = (topTags.data ?? []).map((t) => ({ value: t.tag, label: t.tag }));
+  const hasFilters = Boolean(search || operationFilter || typeFilter || statusFilter || tagFilter);
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6">
@@ -228,6 +247,14 @@ export function Properties() {
           value={statusFilter}
           onChange={(v) => updateFilter(setStatusFilter, v)}
         />
+        {tagOptions.length > 0 && (
+          <FilterChips
+            label="Etiqueta"
+            options={tagOptions}
+            value={tagFilter}
+            onChange={(v) => updateFilter(setTagFilter, v)}
+          />
+        )}
       </div>
 
       {list.isLoading && <p className="text-gray-500">Cargando...</p>}
@@ -269,6 +296,15 @@ export function Properties() {
                 <p className="font-medium break-words">
                   {p.title} — {p.zone} — {p.currency} {p.price}
                 </p>
+                {p.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {p.tags.map((tag) => (
+                      <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
                   <a
                     href={`https://wa.me/?text=${texto}`}
@@ -326,6 +362,33 @@ export function Properties() {
                         {p.ownerName && <p>Nombre: {p.ownerName}</p>}
                         {p.ownerPhone && <p>Teléfono: {p.ownerPhone}</p>}
                         {p.ownerNotes && <p>Notas: {p.ownerNotes}</p>}
+                      </div>
+                    )}
+                    {p.priceHistory.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="font-medium text-gray-700">Historial de precios:</p>
+                        <ul className="flex flex-col gap-1 mt-1">
+                          {p.priceHistory.map((entry, i) => {
+                            const prev = p.priceHistory[i - 1];
+                            const prevPrice = prev ? Number(prev.price) : null;
+                            const currentPrice = Number(entry.price);
+                            const priceWentUp = prevPrice != null && currentPrice > prevPrice;
+                            const priceWentDown = prevPrice != null && currentPrice < prevPrice;
+                            return (
+                              <li key={entry.id} className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs text-gray-400">
+                                  {new Date(entry.createdAt).toLocaleDateString()}
+                                </span>
+                                <span>
+                                  {entry.currency} {entry.price}
+                                </span>
+                                {i === 0 && <span className="text-xs text-gray-400">(precio inicial)</span>}
+                                {priceWentUp && <span className="text-xs text-teal-700">↑ subió</span>}
+                                {priceWentDown && <span className="text-xs text-red-600">↓ bajó</span>}
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </div>
                     )}
                   </div>
