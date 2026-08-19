@@ -1,7 +1,7 @@
 // Lista de matches sugeridos: se generan y actualizan solos cuando cambian leads o propiedades.
 import { Link } from "react-router-dom";
-import { trpc } from "../trpc";
-import type { RouterOutputs } from "../trpc";
+import { trpc } from "../../trpc";
+import type { RouterOutputs } from "../../trpc";
 
 type Match = RouterOutputs["matches"]["list"][number];
 

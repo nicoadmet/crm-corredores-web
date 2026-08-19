@@ -1,7 +1,7 @@
 // Formulario de login y registro con email/password.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 export function Auth() {
   const [email, setEmail] = useState("");

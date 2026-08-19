@@ -4,8 +4,8 @@
 // aparezca el banner de instalación (InstallPrompt.tsx) y este aparece en una visita posterior,
 // una vez instalada.
 import { useEffect, useState } from "react";
-import { trpc } from "../trpc";
-import { subscribeToPush } from "../lib/push";
+import { trpc } from "../../trpc";
+import { subscribeToPush } from "./push";
 
 const DISMISSED_KEY = "pushPromptDismissed";
 

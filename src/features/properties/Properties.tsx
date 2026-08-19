@@ -2,14 +2,14 @@
 // paginación y búsqueda/filtros (texto libre + chips de operación/tipo/estado/etiqueta).
 import { useState } from "react";
 import imageCompression from "browser-image-compression";
-import { trpc, API_URL } from "../trpc";
-import type { RouterOutputs } from "../trpc";
-import { supabase } from "../lib/supabase";
-import { Modal } from "../components/Modal";
-import { PropertyForm, emptyPropertyForm } from "../components/PropertyForm";
-import type { PropertyFormValues } from "../components/PropertyForm";
-import { FilterChips } from "../components/FilterChips";
-import { useDebouncedValue } from "../lib/useDebouncedValue";
+import { trpc, API_URL } from "../../trpc";
+import type { RouterOutputs } from "../../trpc";
+import { supabase } from "../../lib/supabase";
+import { Modal } from "../../components/Modal";
+import { PropertyForm, emptyPropertyForm } from "./PropertyForm";
+import type { PropertyFormValues } from "./PropertyForm";
+import { FilterChips } from "../../components/FilterChips";
+import { useDebouncedValue } from "../../lib/useDebouncedValue";
 
 type Property = RouterOutputs["properties"]["list"]["items"][number];
 

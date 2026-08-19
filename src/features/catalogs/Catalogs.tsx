@@ -1,9 +1,9 @@
 // Lista de catálogos: cada uno agrupa varias propiedades bajo un link público único para
 // compartir por WhatsApp. Alta/edición en modal (nombre + checklist de propiedades), sin papelera.
 import { useState } from "react";
-import { trpc, API_URL } from "../trpc";
-import type { RouterOutputs } from "../trpc";
-import { Modal } from "../components/Modal";
+import { trpc, API_URL } from "../../trpc";
+import type { RouterOutputs } from "../../trpc";
+import { Modal } from "../../components/Modal";
 
 type Catalog = RouterOutputs["catalogs"]["list"][number];
 type PropertyOption = RouterOutputs["properties"]["list"]["items"][number];

@@ -9,7 +9,7 @@ import { supabase } from "../lib/supabase";
 import { DashboardTopbar } from "../components/DashboardTopbar";
 import { DashboardNav } from "../components/DashboardNav";
 import { InstallPrompt } from "../components/InstallPrompt";
-import { PushPrompt } from "../components/PushPrompt";
+import { PushPrompt } from "../features/push/PushPrompt";
 
 export function ProtectedApp() {
   const [session, setSession] = useState<Session | null>(null);

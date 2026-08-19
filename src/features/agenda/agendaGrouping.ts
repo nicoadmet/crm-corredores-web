@@ -4,7 +4,7 @@
 // A diferencia de nextFollowUpDate (que es sólo fecha, sin hora, guardada en UTC — ver followUp.ts),
 // acá "date" es un timestamp real con hora que el usuario eligió en su horario local, así que
 // comparamos en hora local, sin trucos de UTC.
-import type { RouterOutputs } from "../trpc";
+import type { RouterOutputs } from "../../trpc";
 
 export type AgendaEvent = RouterOutputs["agenda"]["list"][number];
 

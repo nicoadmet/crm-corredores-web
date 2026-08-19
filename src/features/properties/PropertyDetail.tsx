@@ -1,6 +1,6 @@
 // Página de detalle de una propiedad (solo lectura), a la que se llega desde un match.
 import { Link, useParams } from "react-router-dom";
-import { trpc } from "../trpc";
+import { trpc } from "../../trpc";
 
 const OPERATION_LABELS: Record<string, string> = { venta: "Venta", alquiler: "Alquiler" };
 const PROPERTY_TYPE_LABELS: Record<string, string> = { depto: "Depto", casa: "Casa" };

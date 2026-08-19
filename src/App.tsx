@@ -4,16 +4,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Home } from "./pages/Home";
 import { Pricing } from "./pages/Pricing";
-import { Auth } from "./pages/Auth";
+import { Auth } from "./features/auth/Auth";
 import { ProtectedApp } from "./pages/ProtectedApp";
-import { Properties } from "./pages/Properties";
-import { PropertyDetail } from "./pages/PropertyDetail";
-import { Leads } from "./pages/Leads";
-import { LeadDetail } from "./pages/LeadDetail";
-import { Matches } from "./pages/Matches";
-import { Agenda } from "./pages/Agenda";
-import { Catalogs } from "./pages/Catalogs";
-import { Stats } from "./pages/Stats";
+import { Properties } from "./features/properties/Properties";
+import { PropertyDetail } from "./features/properties/PropertyDetail";
+import { Leads } from "./features/leads/Leads";
+import { LeadDetail } from "./features/leads/LeadDetail";
+import { Matches } from "./features/matches/Matches";
+import { Agenda } from "./features/agenda/Agenda";
+import { Catalogs } from "./features/catalogs/Catalogs";
+import { Stats } from "./features/stats/Stats";
 
 function App() {
   return (

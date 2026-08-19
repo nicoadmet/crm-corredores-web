@@ -2,12 +2,12 @@
 // tareas/recordatorios libres) agrupados por día. Alta y edición en modal; marcar como realizado
 // saca el evento de la lista principal y lo manda al historial.
 import { useState } from "react";
-import { trpc } from "../trpc";
-import { Modal } from "../components/Modal";
-import { AgendaEventForm, emptyAgendaEventForm } from "../components/AgendaEventForm";
-import type { AgendaEventFormValues } from "../components/AgendaEventForm";
-import { groupAgendaEvents, AGENDA_BUCKET_LABELS } from "../lib/agendaGrouping";
-import type { AgendaBucketKey, AgendaEvent } from "../lib/agendaGrouping";
+import { trpc } from "../../trpc";
+import { Modal } from "../../components/Modal";
+import { AgendaEventForm, emptyAgendaEventForm } from "./AgendaEventForm";
+import type { AgendaEventFormValues } from "./AgendaEventForm";
+import { groupAgendaEvents, AGENDA_BUCKET_LABELS } from "./agendaGrouping";
+import type { AgendaBucketKey, AgendaEvent } from "./agendaGrouping";
 
 const TYPE_LABELS: Record<string, string> = {
   visita: "Visita",

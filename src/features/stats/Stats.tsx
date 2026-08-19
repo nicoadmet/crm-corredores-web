@@ -1,7 +1,7 @@
 // Panel de estadísticas: números clave de Propiedades y Leads de la cuenta logueada.
 // Nada de reportes pesados — sólo conteos por estado y una tasa de conversión aproximada,
 // para tener un panorama de un vistazo.
-import { trpc } from "../trpc";
+import { trpc } from "../../trpc";
 
 const PROPERTY_STATUS_LABELS: Record<string, string> = {
   disponible: "Disponible",

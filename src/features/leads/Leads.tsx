@@ -1,14 +1,14 @@
 // Lista de leads de la cuenta logueada: alta y edición en modal, borrado (papelera), paginación,
 // búsqueda/filtros (texto libre + chips de operación/tipo/estado) y panel de seguimientos urgentes.
 import { useState } from "react";
-import { trpc } from "../trpc";
-import type { RouterOutputs } from "../trpc";
-import { Modal } from "../components/Modal";
-import { LeadForm, emptyLeadForm } from "../components/LeadForm";
-import type { LeadFormValues } from "../components/LeadForm";
-import { FilterChips } from "../components/FilterChips";
-import { getFollowUpStatus, FOLLOW_UP_LABELS, FOLLOW_UP_STYLES } from "../lib/followUp";
-import { useDebouncedValue } from "../lib/useDebouncedValue";
+import { trpc } from "../../trpc";
+import type { RouterOutputs } from "../../trpc";
+import { Modal } from "../../components/Modal";
+import { LeadForm, emptyLeadForm } from "./LeadForm";
+import type { LeadFormValues } from "./LeadForm";
+import { FilterChips } from "../../components/FilterChips";
+import { getFollowUpStatus, FOLLOW_UP_LABELS, FOLLOW_UP_STYLES } from "../../lib/followUp";
+import { useDebouncedValue } from "../../lib/useDebouncedValue";
 
 type Lead = RouterOutputs["leads"]["list"]["items"][number];
 

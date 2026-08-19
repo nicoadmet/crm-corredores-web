@@ -1,8 +1,8 @@
 // Página de detalle de un lead (solo lectura salvo la timeline), a la que se llega desde un match.
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { trpc } from "../trpc";
-import { getFollowUpStatus, FOLLOW_UP_LABELS, FOLLOW_UP_STYLES } from "../lib/followUp";
+import { trpc } from "../../trpc";
+import { getFollowUpStatus, FOLLOW_UP_LABELS, FOLLOW_UP_STYLES } from "../../lib/followUp";
 
 const OPERATION_LABELS: Record<string, string> = { venta: "Venta", alquiler: "Alquiler" };
 const PROPERTY_TYPE_LABELS: Record<string, string> = { depto: "Depto", casa: "Casa" };
