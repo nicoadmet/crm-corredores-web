@@ -12,26 +12,34 @@ jobs:
     steps:
       - name: Checkout web
         uses: actions/checkout@v4
+        with:
+          path: crm-corredores-web
 
       - name: Checkout api (repo hermano, para el chequeo de tipos cruzado)
         uses: actions/checkout@v4
         with:
           repository: nicoadmet/crm-corredores-api
           token: ${{ secrets.API_REPO_TOKEN }}
-          path: ../crm-corredores-api
+          path: crm-corredores-api
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Instalar dependencias del backend
-        working-directory: ../crm-corredores-api
+        working-directory: crm-corredores-api
         run: npm ci
         env:
           DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
 
       - name: Instalar dependencias del frontend
+        working-directory: crm-corredores-web
         run: npm ci
 
-      - run: npm run lint
-      - run: npm run build
+      - name: Lint
+        working-directory: crm-corredores-web
+        run: npm run lint
+
+      - name: Build
+        working-directory: crm-corredores-web
+        run: npm run build
