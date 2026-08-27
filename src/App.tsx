@@ -1,5 +1,5 @@
 // Define las rutas de toda la app: páginas públicas (Home, Login) y el área protegida (/app) con sus subrutas
-// (Properties, Leads, Matches, Agenda, Catálogos, Estadísticas, y el detalle de cada uno).
+// (Hoy, Properties, Leads, Matches, Agenda, Catálogos, Estadísticas, y el detalle de cada uno).
 // Precios ya no es una página propia: es la sección #precios del Home (ver src/pages/Home.tsx).
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Home } from "./pages/Home";
@@ -13,6 +13,7 @@ import { Matches } from "./features/matches/Matches";
 import { Agenda } from "./features/agenda/Agenda";
 import { Catalogs } from "./features/catalogs/Catalogs";
 import { Stats } from "./features/stats/Stats";
+import { Today } from "./features/today/Today";
 
 function App() {
   return (
@@ -22,7 +23,7 @@ function App() {
         <Route path="/precios" element={<Navigate to="/#precios" replace />} />
         <Route path="/login" element={<Auth />} />
         <Route path="/app" element={<ProtectedApp />}>
-          <Route index element={<Navigate to="properties" replace />} />
+          <Route index element={<Today />} />
           <Route path="properties" element={<Properties />} />
           <Route path="properties/:id" element={<PropertyDetail />} />
           <Route path="leads" element={<Leads />} />

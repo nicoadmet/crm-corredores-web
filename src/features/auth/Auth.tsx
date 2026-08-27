@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import { Button } from "../../components/Button";
 
 export function Auth() {
   const [email, setEmail] = useState("");
@@ -43,17 +44,16 @@ export function Auth() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <button type="submit" className="bg-gray-900 text-white px-4 py-2 rounded-md text-sm hover:bg-gray-800">
-          {mode === "login" ? "Entrar" : "Registrarme"}
-        </button>
+        <Button type="submit">{mode === "login" ? "Entrar" : "Registrarme"}</Button>
       </form>
       {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setMode(mode === "login" ? "signup" : "login")}
-        className="text-sm text-gray-500 hover:text-gray-800 underline mt-4"
+        className="mt-4 underline"
       >
         {mode === "login" ? "¿No tenés cuenta? Registrate" : "¿Ya tenés cuenta? Iniciá sesión"}
-      </button>
+      </Button>
     </div>
   );
 }

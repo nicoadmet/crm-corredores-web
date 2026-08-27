@@ -1,11 +1,16 @@
-// Formulario reutilizable para crear o editar una propiedad (usado dentro del Modal de alta y edición).
+// Formulario de alta y edición de una propiedad (va dentro del Modal).
+// Arriba, sólo lo mínimo para que la propiedad exista: cinco campos, sin scroll, para poder cargarla
+// en menos de 30 segundos parado en la vereda. Todo lo demás queda plegado en "Más detalles".
 import { useState } from "react";
+import { Button } from "../../components/Button";
+import { Collapse, Field, FormLayout, Segmented, Switch, TextArea, TextInput } from "../../components/form";
 
 export type PropertyFormValues = {
   title: string;
   operationType: string;
   propertyType: string;
   price: string;
+  currency: string;
   zone: string;
   address: string;
   rooms: string;
@@ -31,6 +36,7 @@ export const emptyPropertyForm: PropertyFormValues = {
   operationType: "venta",
   propertyType: "depto",
   price: "",
+  currency: "USD",
   zone: "",
   address: "",
   rooms: "",
@@ -51,6 +57,21 @@ export const emptyPropertyForm: PropertyFormValues = {
   tagsText: "",
 };
 
+const OPERATION_OPTIONS = [
+  { value: "venta", label: "Venta" },
+  { value: "alquiler", label: "Alquiler" },
+];
+
+const TYPE_OPTIONS = [
+  { value: "depto", label: "Depto" },
+  { value: "casa", label: "Casa" },
+];
+
+const CURRENCY_OPTIONS = [
+  { value: "USD", label: "USD" },
+  { value: "ARS", label: "ARS" },
+];
+
 export function PropertyForm({
   initialValues,
   submitLabel,
@@ -68,114 +89,135 @@ export function PropertyForm({
     setValues((v) => ({ ...v, [key]: value }));
   }
 
-  const inputClass = "border border-gray-300 rounded-md px-3 py-2 w-full text-sm";
-
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit(values);
       }}
-      className="flex flex-col gap-3"
+      className="flex flex-col"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input
-          className={inputClass}
-          placeholder="Título"
+      <FormLayout
+        actions={
+        <Button type="submit" size="lg" className="w-full sm:w-auto" loading={submitting}>
+          {submitting ? "Guardando..." : submitLabel}
+        </Button>
+        }
+      >
+      <Field label="Título">
+        <TextInput
+          placeholder="Ej: Depto 3 amb · Güemes 3400 4°B"
           value={values.title}
           onChange={(e) => set("title", e.target.value)}
           required
         />
-        <select
-          className={inputClass}
-          value={values.operationType}
-          onChange={(e) => set("operationType", e.target.value)}
-        >
-          <option value="venta">Venta</option>
-          <option value="alquiler">Alquiler</option>
-        </select>
-        <select
-          className={inputClass}
-          value={values.propertyType}
-          onChange={(e) => set("propertyType", e.target.value)}
-        >
-          <option value="depto">Depto</option>
-          <option value="casa">Casa</option>
-        </select>
-        <input
-          className={inputClass}
-          placeholder="Precio"
-          type="number"
-          value={values.price}
-          onChange={(e) => set("price", e.target.value)}
-          required
-        />
-        <input
-          className={inputClass}
-          placeholder="Zona"
-          value={values.zone}
-          onChange={(e) => set("zone", e.target.value)}
-          required
-        />
+      </Field>
+
+      <Field label="Operación">
+        <Segmented options={OPERATION_OPTIONS} value={values.operationType} onChange={(v) => set("operationType", v)} />
+      </Field>
+
+      <Field label="Tipo">
+        <Segmented options={TYPE_OPTIONS} value={values.propertyType} onChange={(v) => set("propertyType", v)} />
+      </Field>
+
+      <div className="flex items-end gap-2.5">
+        <div className="min-w-0 flex-1">
+          <Field label="Precio">
+            <TextInput
+              placeholder="189000"
+              type="number"
+              inputMode="numeric"
+              className="font-semibold tabular-nums"
+              value={values.price}
+              onChange={(e) => set("price", e.target.value)}
+              required
+            />
+          </Field>
+        </div>
+        <div className="flex-shrink-0 pb-0">
+          <Segmented options={CURRENCY_OPTIONS} value={values.currency} onChange={(v) => set("currency", v)} compact />
+        </div>
       </div>
 
-      <details className="border-t border-gray-200 pt-3">
-        <summary className="cursor-pointer font-medium text-gray-700 text-sm">Más detalles (opcional)</summary>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-          <input className={inputClass} placeholder="Dirección" value={values.address} onChange={(e) => set("address", e.target.value)} />
-          <input className={inputClass} placeholder="Ambientes" type="number" value={values.rooms} onChange={(e) => set("rooms", e.target.value)} />
-          <input className={inputClass} placeholder="Dormitorios" type="number" value={values.bedrooms} onChange={(e) => set("bedrooms", e.target.value)} />
-          <input className={inputClass} placeholder="Baños" type="number" value={values.bathrooms} onChange={(e) => set("bathrooms", e.target.value)} />
-          <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" checked={values.garage} onChange={(e) => set("garage", e.target.checked)} />
-            Cochera
-          </label>
-          {values.garage && (
-            <input
-              className={inputClass}
-              placeholder="Cantidad de cocheras"
-              type="number"
-              value={values.garageSpaces}
-              onChange={(e) => set("garageSpaces", e.target.value)}
-            />
-          )}
-          <input className={inputClass} placeholder="M² cubiertos" type="number" value={values.coveredArea} onChange={(e) => set("coveredArea", e.target.value)} />
-          <input className={inputClass} placeholder="M² totales" type="number" value={values.totalArea} onChange={(e) => set("totalArea", e.target.value)} />
-          <input className={inputClass} placeholder="Piso/unidad" value={values.floor} onChange={(e) => set("floor", e.target.value)} />
-          <input className={inputClass} placeholder="Antigüedad (años, 0 = a estrenar)" type="number" value={values.age} onChange={(e) => set("age", e.target.value)} />
+      <Field label="Zona">
+        <TextInput placeholder="Ej: Palermo" value={values.zone} onChange={(e) => set("zone", e.target.value)} required />
+      </Field>
+
+      <Collapse title="Más detalles" hint="Medidas, ambientes, propietario, exclusividad y etiquetas">
+        <Field label="Dirección">
+          <TextInput value={values.address} onChange={(e) => set("address", e.target.value)} />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3.5">
+          <Field label="Ambientes">
+            <TextInput type="number" inputMode="numeric" value={values.rooms} onChange={(e) => set("rooms", e.target.value)} />
+          </Field>
+          <Field label="Dormitorios">
+            <TextInput type="number" inputMode="numeric" value={values.bedrooms} onChange={(e) => set("bedrooms", e.target.value)} />
+          </Field>
+          <Field label="Baños">
+            <TextInput type="number" inputMode="numeric" value={values.bathrooms} onChange={(e) => set("bathrooms", e.target.value)} />
+          </Field>
+          <Field label="Piso / unidad">
+            <TextInput value={values.floor} onChange={(e) => set("floor", e.target.value)} />
+          </Field>
+          <Field label="M² cubiertos">
+            <TextInput type="number" inputMode="numeric" value={values.coveredArea} onChange={(e) => set("coveredArea", e.target.value)} />
+          </Field>
+          <Field label="M² totales">
+            <TextInput type="number" inputMode="numeric" value={values.totalArea} onChange={(e) => set("totalArea", e.target.value)} />
+          </Field>
         </div>
-        <textarea className={`${inputClass} mt-3`} placeholder="Descripción" value={values.description} onChange={(e) => set("description", e.target.value)} />
 
-        <input
-          className={`${inputClass} mt-3`}
-          placeholder="Etiquetas (separadas por coma, ej: a estrenar, con pileta)"
-          value={values.tagsText}
-          onChange={(e) => set("tagsText", e.target.value)}
-        />
+        <Field label="Antigüedad" hint="En años. 0 significa a estrenar.">
+          <TextInput type="number" inputMode="numeric" value={values.age} onChange={(e) => set("age", e.target.value)} />
+        </Field>
 
-        <p className="text-xs text-gray-500 mt-4 mb-2">Datos del propietario (uso interno, no se muestran en la ficha pública):</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <input className={inputClass} placeholder="Nombre del propietario" value={values.ownerName} onChange={(e) => set("ownerName", e.target.value)} />
-          <input className={inputClass} placeholder="Teléfono del propietario" value={values.ownerPhone} onChange={(e) => set("ownerPhone", e.target.value)} />
-        </div>
-        <textarea className={`${inputClass} mt-3`} placeholder="Notas sobre el propietario" value={values.ownerNotes} onChange={(e) => set("ownerNotes", e.target.value)} />
-
-        <label className="flex items-center gap-2 text-sm text-gray-700 mt-3">
-          <input type="checkbox" checked={values.exclusive} onChange={(e) => set("exclusive", e.target.checked)} />
-          Exclusividad
-        </label>
-        {values.exclusive && (
-          <input className={`${inputClass} mt-2`} type="date" value={values.exclusiveUntil} onChange={(e) => set("exclusiveUntil", e.target.value)} />
+        <Switch checked={values.garage} onChange={(v) => set("garage", v)} label="Tiene cochera" />
+        {values.garage && (
+          <Field label="Cantidad de cocheras">
+            <TextInput type="number" inputMode="numeric" value={values.garageSpaces} onChange={(e) => set("garageSpaces", e.target.value)} />
+          </Field>
         )}
-      </details>
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="self-start bg-teal-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
-      >
-        {submitting ? "Guardando..." : submitLabel}
-      </button>
+        <Field label="Descripción">
+          <TextArea value={values.description} onChange={(e) => set("description", e.target.value)} />
+        </Field>
+
+        <Field label="Etiquetas" hint="Separadas por coma. Ej: a estrenar, con pileta, apto crédito">
+          <TextInput value={values.tagsText} onChange={(e) => set("tagsText", e.target.value)} />
+        </Field>
+
+        <div className="flex flex-col gap-3.5 rounded-xl bg-gray-50 p-3">
+          <p className="text-[11px] text-ink-mute">
+            Datos del propietario. Son de uso interno: nunca aparecen en la ficha que compartís por WhatsApp.
+          </p>
+          <Field label="Nombre">
+            <TextInput value={values.ownerName} onChange={(e) => set("ownerName", e.target.value)} />
+          </Field>
+          <Field label="Teléfono">
+            <TextInput type="tel" inputMode="tel" value={values.ownerPhone} onChange={(e) => set("ownerPhone", e.target.value)} />
+          </Field>
+          <Field label="Notas">
+            <TextArea rows={2} value={values.ownerNotes} onChange={(e) => set("ownerNotes", e.target.value)} />
+          </Field>
+        </div>
+
+        <Switch
+          checked={values.exclusive}
+          onChange={(v) => set("exclusive", v)}
+          label="Tengo la exclusividad"
+          hint="Se muestra como distintivo en la lista y la ficha."
+        />
+        {values.exclusive && (
+          <Field label="Hasta cuándo">
+            <TextInput type="date" value={values.exclusiveUntil} onChange={(e) => set("exclusiveUntil", e.target.value)} />
+          </Field>
+        )}
+      </Collapse>
+
+      </FormLayout>
     </form>
   );
 }

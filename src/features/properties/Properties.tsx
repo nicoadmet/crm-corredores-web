@@ -1,15 +1,22 @@
 // Lista de propiedades de la cuenta logueada: alta y edición en modal, duplicado, borrado (papelera),
 // paginación y búsqueda/filtros (texto libre + chips de operación/tipo/estado/etiqueta).
 import { useState } from "react";
-import imageCompression from "browser-image-compression";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { trpc, API_URL } from "../../trpc";
 import type { RouterOutputs } from "../../trpc";
-import { supabase } from "../../lib/supabase";
 import { Modal } from "../../components/Modal";
 import { PropertyForm, emptyPropertyForm } from "./PropertyForm";
 import type { PropertyFormValues } from "./PropertyForm";
 import { FilterChips } from "../../components/FilterChips";
+import { FilterSelect } from "../../components/FilterSelect";
+import { Menu } from "../../components/Menu";
+import { Button } from "../../components/Button";
+import { EmptyState } from "../../components/EmptyState";
+import { SkeletonList } from "../../components/Skeleton";
+import { useToast } from "../../lib/toast";
 import { useDebouncedValue } from "../../lib/useDebouncedValue";
+import { useNewParam } from "../../lib/useNewParam";
+import { usePageChrome } from "../../lib/pageChrome";
 
 type Property = RouterOutputs["properties"]["list"]["items"][number];
 
@@ -42,6 +49,7 @@ function toFormValues(p: Property): PropertyFormValues {
     operationType: p.operationType,
     propertyType: p.propertyType,
     price: String(p.price),
+    currency: p.currency,
     zone: p.zone,
     address: p.address ?? "",
     rooms: p.rooms != null ? String(p.rooms) : "",
@@ -69,6 +77,7 @@ function toMutationInput(values: PropertyFormValues) {
     operationType: values.operationType,
     propertyType: values.propertyType,
     price: Number(values.price),
+    currency: values.currency,
     zone: values.zone,
     address: values.address || undefined,
     rooms: values.rooms ? Number(values.rooms) : undefined,
@@ -93,17 +102,70 @@ function toMutationInput(values: PropertyFormValues) {
   };
 }
 
+// Resume las características de una propiedad en una sola línea, salteando lo que no esté cargado.
+function metaLine(p: Property): string {
+  const parts = [p.zone];
+  if (p.coveredArea != null) parts.push(`${p.coveredArea} m²`);
+  if (p.rooms != null) parts.push(`${p.rooms} amb`);
+  if (p.bathrooms != null) parts.push(`${p.bathrooms} ${p.bathrooms === 1 ? "baño" : "baños"}`);
+  if (p.garage) parts.push("cochera");
+  return parts.join(" · ");
+}
+
+// "hoy" / "ayer" / "22 ago": en una columna angosta, una fecha completa no aporta y ocupa el doble.
+function shortDate(value: string | Date): string {
+  const date = new Date(value);
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86400000);
+  if (days === 0) return "hoy";
+  if (days === 1) return "ayer";
+  return date.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  disponible: "bg-teal-50 text-teal-700",
+  reservada: "bg-gray-100 text-ink-soft",
+  vendida: "bg-gray-100 text-ink-soft",
+  pausada: "bg-gray-100 text-ink-soft",
+};
+
+function StatusPill({ status }: { status: string }) {
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${STATUS_STYLES[status] ?? "bg-gray-100 text-ink-soft"}`}>
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  );
+}
+
+function Thumb({ url, alt, size }: { url?: string; alt: string; size: string }) {
+  if (url) return <img src={url} alt={alt} className={`${size} flex-shrink-0 rounded-lg object-cover`} />;
+  return (
+    <span className={`${size} flex flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-300`}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+        <path d="M4 5h16v14H4zM4 16l4.5-4.5 3.5 3.5 3-3L20 17" />
+        <circle cx="9" cy="9" r="1.4" />
+      </svg>
+    </span>
+  );
+}
+
 export function Properties() {
   const utils = trpc.useUtils();
+  const toast = useToast();
+  const navigate = useNavigate();
+  // El buscador global puede llegar acá con ?q=<texto> para dejar la lista ya filtrada por zona.
+  const [searchParams] = useSearchParams();
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [operationFilter, setOperationFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [tagFilter, setTagFilter] = useState("");
   const debouncedSearch = useDebouncedValue(search, 400);
 
-  const list = trpc.properties.list.useQuery({
+  // Se guarda en una constante (en vez de escribirlo inline en el useQuery) porque las actualizaciones
+  // optimistas necesitan tocar exactamente esta misma entrada de la caché.
+  const listInput = {
     page,
     pageSize: PAGE_SIZE,
     search: debouncedSearch || undefined,
@@ -111,7 +173,9 @@ export function Properties() {
     propertyType: typeFilter || undefined,
     status: statusFilter || undefined,
     tag: tagFilter || undefined,
-  });
+  };
+
+  const list = trpc.properties.list.useQuery(listInput);
   const topTags = trpc.properties.topTags.useQuery();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -122,7 +186,9 @@ export function Properties() {
       utils.properties.list.invalidate();
       utils.properties.topTags.invalidate();
       setModalOpen(false);
+      toast("Propiedad creada.");
     },
+    onError: () => toast("No se pudo crear la propiedad.", "error"),
   });
 
   const update = trpc.properties.update.useMutation({
@@ -130,11 +196,27 @@ export function Properties() {
       utils.properties.list.invalidate();
       utils.properties.topTags.invalidate();
       setModalOpen(false);
+      toast("Cambios guardados.");
     },
+    onError: () => toast("No se pudieron guardar los cambios.", "error"),
   });
 
+  // Borrado optimista: la tarjeta desaparece al instante y, si el servidor falla, vuelve a su lugar.
   const deleteProperty = trpc.properties.delete.useMutation({
-    onSuccess: () => {
+    onMutate: async ({ id }) => {
+      await utils.properties.list.cancel(listInput);
+      const previous = utils.properties.list.getData(listInput);
+      utils.properties.list.setData(listInput, (old) =>
+        old ? { ...old, items: old.items.filter((p) => p.id !== id), total: Math.max(0, old.total - 1) } : old,
+      );
+      return { previous };
+    },
+    onSuccess: () => toast("Propiedad enviada a la papelera."),
+    onError: (_error, _variables, context) => {
+      if (context?.previous) utils.properties.list.setData(listInput, context.previous);
+      toast("No se pudo eliminar la propiedad.", "error");
+    },
+    onSettled: () => {
       utils.properties.list.invalidate();
       utils.properties.topTags.invalidate();
     },
@@ -146,17 +228,18 @@ export function Properties() {
       utils.properties.topTags.invalidate();
       setEditing(copy);
       setModalOpen(true);
+      toast("Copia creada. Ajustá lo que cambie y guardá.");
     },
-  });
-
-  const addImage = trpc.propertyImages.create.useMutation({
-    onSuccess: () => utils.properties.list.invalidate(),
+    onError: () => toast("No se pudo duplicar la propiedad.", "error"),
   });
 
   function openCreate() {
     setEditing(null);
     setModalOpen(true);
   }
+
+  // El botón flotante de alta rápida llega acá con ?new=1 y abre este mismo formulario.
+  useNewParam(openCreate);
 
   function openEdit(p: Property) {
     setEditing(p);
@@ -181,23 +264,17 @@ export function Properties() {
     duplicateProperty.mutate({ id: p.id });
   }
 
-  async function handlePhoto(propertyId: string, file: File) {
-    const compressed = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1280 });
-    const extension = file.name.split(".").pop()?.replace(/[^a-zA-Z0-9]/g, "") || "jpg";
-    const path = `${propertyId}/${Date.now()}.${extension}`;
-
-    const { error } = await supabase.storage.from("property-images").upload(path, compressed);
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    const { data } = supabase.storage.from("property-images").getPublicUrl(path);
-    addImage.mutate({ propertyId, url: data.publicUrl });
-  }
-
   function updateFilter(setter: (value: string) => void, value: string) {
     setter(value);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setOperationFilter("");
+    setTypeFilter("");
+    setStatusFilter("");
+    setTagFilter("");
     setPage(1);
   }
 
@@ -207,217 +284,216 @@ export function Properties() {
   const tagOptions = (topTags.data ?? []).map((t) => ({ value: t.tag, label: t.tag }));
   const hasFilters = Boolean(search || operationFilter || typeFilter || statusFilter || tagFilter);
 
+  usePageChrome(
+    "Propiedades",
+    total > 0 ? `${total} ${hasFilters ? "con los filtros puestos" : "en cartera"}` : undefined,
+  );
+
+  // Las mismas acciones alimentan el menú "⋯" del escritorio y el del celular.
+  function menuItemsFor(p: Property) {
+    return [
+      { label: "Editar", onSelect: () => openEdit(p) },
+      { label: "Duplicar", onSelect: () => handleDuplicate(p), disabled: duplicateProperty.isPending },
+      { label: "Ver ficha completa", onSelect: () => navigate(`/app/properties/${p.id}`) },
+      { label: "Eliminar", onSelect: () => handleDelete(p), danger: true },
+    ];
+  }
+
+  function whatsappLink(p: Property) {
+    const link = `${API_URL}/p/${p.id}`;
+    return `https://wa.me/?text=${encodeURIComponent(`${p.title} — ${p.currency} ${p.price}\n${link}`)}`;
+  }
+
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Propiedades</h1>
-        <button
-          onClick={openCreate}
-          className="bg-teal-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-teal-700"
-        >
-          + Agregar
-        </button>
+    <div className="mx-auto max-w-6xl p-4 sm:p-5">
+
+      <div className="mb-3 flex flex-col gap-2.5">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-lg border border-hairline bg-surface px-2.5 md:max-w-xs">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="h-3.5 w-3.5 flex-shrink-0 text-ink-faint">
+              <path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14M16 16l4.5 4.5" />
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Buscar por título o zona..."
+              className="min-w-0 flex-1 border-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-faint"
+            />
+          </div>
+
+          <div className="hidden items-center gap-2 lg:flex">
+            <FilterSelect label="Operación" options={OPERATION_OPTIONS} value={operationFilter} onChange={(v) => updateFilter(setOperationFilter, v)} />
+            <FilterSelect label="Tipo" options={PROPERTY_TYPE_OPTIONS} value={typeFilter} onChange={(v) => updateFilter(setTypeFilter, v)} />
+            <FilterSelect label="Estado" options={STATUS_OPTIONS} value={statusFilter} onChange={(v) => updateFilter(setStatusFilter, v)} />
+            {tagOptions.length > 0 && (
+              <FilterSelect label="Etiqueta" options={tagOptions} value={tagFilter} onChange={(v) => updateFilter(setTagFilter, v)} />
+            )}
+          </div>
+
+          <Button size="sm" onClick={openCreate} className="ml-auto hidden flex-shrink-0 md:inline-flex">
+            + Nueva propiedad
+          </Button>
+        </div>
+
+        {/* En celular los filtros no entran como desplegables en una fila: van como chips. */}
+        <div className="flex flex-col gap-2 lg:hidden">
+          <FilterChips label="Operación" options={OPERATION_OPTIONS} value={operationFilter} onChange={(v) => updateFilter(setOperationFilter, v)} />
+          <FilterChips label="Estado" options={STATUS_OPTIONS} value={statusFilter} onChange={(v) => updateFilter(setStatusFilter, v)} />
+          {tagOptions.length > 0 && (
+            <FilterChips label="Etiqueta" options={tagOptions} value={tagFilter} onChange={(v) => updateFilter(setTagFilter, v)} />
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2 mb-4">
-        <input
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          placeholder="Buscar por título o zona..."
-          className="border border-gray-300 rounded-md px-3 py-2 w-full text-sm"
-        />
-        <FilterChips
-          label="Operación"
-          options={OPERATION_OPTIONS}
-          value={operationFilter}
-          onChange={(v) => updateFilter(setOperationFilter, v)}
-        />
-        <FilterChips
-          label="Tipo"
-          options={PROPERTY_TYPE_OPTIONS}
-          value={typeFilter}
-          onChange={(v) => updateFilter(setTypeFilter, v)}
-        />
-        <FilterChips
-          label="Estado"
-          options={STATUS_OPTIONS}
-          value={statusFilter}
-          onChange={(v) => updateFilter(setStatusFilter, v)}
-        />
-        {tagOptions.length > 0 && (
-          <FilterChips
-            label="Etiqueta"
-            options={tagOptions}
-            value={tagFilter}
-            onChange={(v) => updateFilter(setTagFilter, v)}
-          />
-        )}
-      </div>
+      {list.isLoading && <SkeletonList count={5} withImage />}
 
-      {list.isLoading && <p className="text-gray-500">Cargando...</p>}
       {!list.isLoading && items.length === 0 && !hasFilters && (
-        <p className="text-gray-500 border border-dashed border-gray-300 rounded-lg p-6 text-center">
-          Todavía no cargaste ninguna propiedad. Tocá "+ Agregar" para crear la primera.
-        </p>
-      )}
-      {!list.isLoading && items.length === 0 && hasFilters && (
-        <p className="text-gray-500 border border-dashed border-gray-300 rounded-lg p-6 text-center">
-          No hay propiedades que coincidan con la búsqueda/filtros.
-        </p>
+        <EmptyState
+          icon="🏠"
+          title="Todavía no cargaste ninguna propiedad"
+          description="Cargá la primera en menos de 30 segundos: alcanza con título, operación, tipo, precio y zona."
+          actionLabel="+ Cargar mi primera propiedad"
+          onAction={openCreate}
+        />
       )}
 
-      <ul className="flex flex-col gap-4">
-        {items.map((p) => {
-          const link = `${API_URL}/p/${p.id}`;
-          const texto = encodeURIComponent(`${p.title} — ${p.currency} ${p.price}\n${link}`);
-          return (
-            <li key={p.id} className="border border-gray-200 rounded-lg p-4 flex gap-4">
-              {p.images[0] && (
-                <img src={p.images[0].url} alt={p.title} className="w-24 h-24 object-cover rounded-md flex-shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-wrap items-center gap-2 mb-1">
-                  <span className="text-xs font-medium bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full">
-                    {OPERATION_LABELS[p.operationType] ?? p.operationType}
-                  </span>
-                  <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                    {PROPERTY_TYPE_LABELS[p.propertyType] ?? p.propertyType}
-                  </span>
-                  <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                    {STATUS_LABELS[p.status] ?? p.status}
-                  </span>
-                  {p.exclusive && (
-                    <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">🔒 Exclusiva</span>
+      {!list.isLoading && items.length === 0 && hasFilters && (
+        <EmptyState
+          icon="🔍"
+          title="Ninguna propiedad coincide"
+          description="Probá con otras palabras o sacá alguno de los filtros que tenés puestos."
+          actionLabel="Limpiar filtros"
+          onAction={clearFilters}
+        />
+      )}
+
+      {items.length > 0 && (
+        <>
+          {/* Escritorio: tabla densa. Entran tres veces más propiedades por pantalla que con tarjetas,
+              y el precio alineado a la derecha se puede comparar de un vistazo. */}
+          <div className="hidden overflow-hidden rounded-xl border border-hairline bg-surface lg:block">
+            <div className="flex items-center gap-3 border-b border-hairline bg-gray-50/60 px-4 py-2 text-[10px] font-semibold tracking-[0.06em] text-ink-faint">
+              <span className="w-11 flex-shrink-0" />
+              <span className="flex-1">PROPIEDAD</span>
+              <span className="hidden w-44 flex-shrink-0 xl:block">ETIQUETAS</span>
+              <span className="w-24 flex-shrink-0">ESTADO</span>
+              <span className="w-28 flex-shrink-0 text-right">PRECIO</span>
+              <span className="hidden w-16 flex-shrink-0 text-right 2xl:block">EDITADA</span>
+              <span className="w-8 flex-shrink-0" />
+            </div>
+
+            {items.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => navigate(`/app/properties/${p.id}`)}
+                className="flex cursor-pointer items-center gap-3 border-b border-divider-soft px-4 py-2 transition-colors last:border-b-0 hover:bg-gray-50/70"
+              >
+                <Thumb url={p.images[0]?.url} alt={p.title} size="h-11 w-11" />
+
+                <span className="min-w-0 flex-1">
+                  <Link
+                    to={`/app/properties/${p.id}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="block truncate text-[13px] font-semibold text-ink hover:text-teal-700"
+                  >
+                    {p.title}
+                  </Link>
+                  <span className="block truncate text-[11.5px] text-ink-mute">{metaLine(p)}</span>
+                </span>
+
+                <span className="hidden w-44 flex-shrink-0 gap-1 overflow-hidden xl:flex">
+                  {p.tags.slice(0, 2).map((tag) => (
+                    <span key={tag} className="truncate rounded-full bg-gray-100 px-2 py-0.5 text-[10.5px] text-ink-soft">{tag}</span>
+                  ))}
+                  {p.tags.length > 2 && (
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10.5px] text-ink-faint">+{p.tags.length - 2}</span>
                   )}
-                </div>
-                <p className="font-medium break-words">
-                  {p.title} — {p.zone} — {p.currency} {p.price}
-                </p>
-                {p.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {p.tags.map((tag) => (
-                      <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                        {tag}
+                </span>
+
+                <span className="w-24 flex-shrink-0">
+                  <StatusPill status={p.status} />
+                  {p.exclusive && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10.5px] font-semibold text-amber-800">excl.</span>}
+                </span>
+
+                <span className="w-28 flex-shrink-0 text-right text-[13px] font-semibold tabular-nums text-ink">
+                  {p.currency} {p.price}
+                </span>
+
+                <span className="hidden w-16 flex-shrink-0 text-right text-[11.5px] tabular-nums text-ink-faint 2xl:block">{shortDate(p.updatedAt)}</span>
+
+                <span onClick={(e) => e.stopPropagation()} className="flex">
+                  <Menu items={menuItemsFor(p)} />
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Celular: tarjeta, con Compartir como acción principal — es lo que más se usa en la calle. */}
+          <ul className="grid grid-cols-1 gap-2.5 md:grid-cols-2 lg:hidden">
+            {items.map((p) => (
+              <li key={p.id} className="overflow-hidden rounded-xl border border-hairline bg-surface">
+                <div onClick={() => navigate(`/app/properties/${p.id}`)} className="flex gap-3 p-3">
+                  <Thumb url={p.images[0]?.url} alt={p.title} size="h-19 w-19" />
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="flex items-baseline gap-2">
+                      <span className="text-base font-bold tracking-tight tabular-nums text-ink">
+                        {p.currency} {p.price}
                       </span>
-                    ))}
-                  </div>
-                )}
-                <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
+                      <span className="ml-auto flex-shrink-0"><StatusPill status={p.status} /></span>
+                    </span>
+                    <span className="truncate text-[13px] font-medium text-ink-soft">{p.title}</span>
+                    <span className="truncate text-xs text-ink-mute">{metaLine(p)}</span>
+                  </span>
+                </div>
+
+                <div className="flex items-stretch border-t border-divider">
                   <a
-                    href={`https://wa.me/?text=${texto}`}
+                    href={whatsappLink(p)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-green-600 hover:underline"
+                    className="flex h-11 flex-1 items-center justify-center gap-2 text-[12.5px] font-semibold text-teal-700 transition-colors active:bg-gray-50"
                   >
-                    Compartir por WhatsApp
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                      <path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3.5 20.5l1.7-4.3A8.5 8.5 0 1 1 20.5 11.5z" />
+                    </svg>
+                    Compartir
                   </a>
-                  <button onClick={() => openEdit(p)} className="text-teal-700 hover:underline">
+                  <span className="w-px bg-divider" />
+                  <button
+                    type="button"
+                    onClick={() => openEdit(p)}
+                    className="flex h-11 flex-1 items-center justify-center gap-2 text-[12.5px] font-medium text-ink-soft transition-colors active:bg-gray-50"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                      <path d="M4 20h4L19 9l-4-4L4 16z" />
+                    </svg>
                     Editar
                   </button>
-                  <button
-                    onClick={() => handleDuplicate(p)}
-                    disabled={duplicateProperty.isPending}
-                    className="text-teal-700 hover:underline disabled:text-gray-300"
-                  >
-                    Duplicar
-                  </button>
-                  <button onClick={() => handleDelete(p)} className="text-red-600 hover:underline">
-                    Eliminar
-                  </button>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="text-xs max-w-[140px]"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handlePhoto(p.id, file);
-                    }}
-                  />
+                  <span className="w-px bg-divider" />
+                  <span className="flex w-13 items-center justify-center">
+                    <Menu items={menuItemsFor(p)} />
+                  </span>
                 </div>
-                <details className="mt-2 text-sm text-gray-600">
-                  <summary className="cursor-pointer text-teal-700">Ver detalle</summary>
-                  <div className="mt-2 flex flex-col gap-1 break-words">
-                    {p.address && <p>Dirección: {p.address}</p>}
-                    {p.rooms != null && <p>Ambientes: {p.rooms}</p>}
-                    {p.bedrooms != null && <p>Dormitorios: {p.bedrooms}</p>}
-                    {p.bathrooms != null && <p>Baños: {p.bathrooms}</p>}
-                    {p.garage && <p>Cochera{p.garageSpaces ? ` (${p.garageSpaces})` : ""}</p>}
-                    {p.coveredArea != null && <p>M² cubiertos: {p.coveredArea}</p>}
-                    {p.totalArea != null && <p>M² totales: {p.totalArea}</p>}
-                    {p.floor && <p>Piso/unidad: {p.floor}</p>}
-                    {p.age != null && <p>Antigüedad: {p.age === 0 ? "A estrenar" : `${p.age} años`}</p>}
-                    {p.description && <p>Descripción: {p.description}</p>}
-                    {p.exclusive && (
-                      <p>
-                        Exclusividad
-                        {p.exclusiveUntil ? ` hasta ${new Date(p.exclusiveUntil).toLocaleDateString()}` : ""}
-                      </p>
-                    )}
-                    {(p.ownerName || p.ownerPhone || p.ownerNotes) && (
-                      <div className="mt-2 pt-2 border-t border-gray-100">
-                        <p className="font-medium text-gray-700">Propietario (uso interno):</p>
-                        {p.ownerName && <p>Nombre: {p.ownerName}</p>}
-                        {p.ownerPhone && <p>Teléfono: {p.ownerPhone}</p>}
-                        {p.ownerNotes && <p>Notas: {p.ownerNotes}</p>}
-                      </div>
-                    )}
-                    {p.priceHistory.length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-gray-100">
-                        <p className="font-medium text-gray-700">Historial de precios:</p>
-                        <ul className="flex flex-col gap-1 mt-1">
-                          {p.priceHistory.map((entry, i) => {
-                            const prev = p.priceHistory[i - 1];
-                            const prevPrice = prev ? Number(prev.price) : null;
-                            const currentPrice = Number(entry.price);
-                            const priceWentUp = prevPrice != null && currentPrice > prevPrice;
-                            const priceWentDown = prevPrice != null && currentPrice < prevPrice;
-                            return (
-                              <li key={entry.id} className="flex flex-wrap items-center gap-2">
-                                <span className="text-xs text-gray-400">
-                                  {new Date(entry.createdAt).toLocaleDateString()}
-                                </span>
-                                <span>
-                                  {entry.currency} {entry.price}
-                                </span>
-                                {i === 0 && <span className="text-xs text-gray-400">(precio inicial)</span>}
-                                {priceWentUp && <span className="text-xs text-teal-700">↑ subió</span>}
-                                {priceWentDown && <span className="text-xs text-red-600">↓ bajó</span>}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </details>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-6">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="text-sm text-teal-700 disabled:text-gray-300"
-          >
+        <div className="mt-4 flex items-center justify-center gap-4">
+          <Button variant="link" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
             ← Anterior
-          </button>
-          <span className="text-sm text-gray-500">
+          </Button>
+          <span className="text-[12.5px] tabular-nums text-ink-mute">
             Página {page} de {totalPages}
           </span>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="text-sm text-teal-700 disabled:text-gray-300"
-          >
+          <Button variant="link" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
             Siguiente →
-          </button>
+          </Button>
         </div>
       )}
 

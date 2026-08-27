@@ -2,6 +2,19 @@
 // usado dentro del Modal de alta y edición. Si el tipo es "visita", lead y propiedad son
 // obligatorios; si es "tarea", quedan como opcionales.
 import { useState } from "react";
+import { Button } from "../../components/Button";
+import { Field, FormLayout, Segmented, TextArea, TextInput } from "../../components/form";
+
+const TYPE_OPTIONS = [
+  { value: "visita", label: "Visita" },
+  { value: "tarea", label: "Tarea" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "pendiente", label: "Pendiente" },
+  { value: "realizado", label: "Realizado" },
+  { value: "cancelado", label: "Cancelado" },
+];
 
 export type AgendaEventFormValues = {
   title: string;
@@ -44,8 +57,12 @@ export function AgendaEventForm({
     setValues((v) => ({ ...v, [key]: value }));
   }
 
-  const inputClass = "border border-gray-300 rounded-md px-3 py-2 w-full text-sm";
   const isVisita = values.type === "visita";
+
+  // El <select> nativo se queda: en el celular abre el selector del sistema, que es más cómodo que
+  // cualquier lista propia, y acá hay que elegir entre cientos de leads o propiedades.
+  const selectClass =
+    "h-11 w-full rounded-xl border border-gray-300 bg-surface px-3 text-[15px] text-ink transition-colors focus:border-teal-500 focus:outline-none sm:h-10 sm:text-sm";
 
   return (
     <form
@@ -53,90 +70,76 @@ export function AgendaEventForm({
         e.preventDefault();
         onSubmit(values);
       }}
-      className="flex flex-col gap-3"
+      className="flex flex-col"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <select
-          className={inputClass}
+      <FormLayout
+        actions={
+        <Button type="submit" size="lg" className="w-full sm:w-auto" loading={submitting}>
+          {submitting ? "Guardando..." : submitLabel}
+        </Button>
+        }
+      >
+      <Field label="Tipo">
+        <Segmented
+          options={TYPE_OPTIONS}
           value={values.type}
-          onChange={(e) => set("type", e.target.value as AgendaEventFormValues["type"])}
-        >
-          <option value="visita">Visita a propiedad</option>
-          <option value="tarea">Tarea / recordatorio</option>
-        </select>
-        <select
-          className={inputClass}
-          value={values.status}
-          onChange={(e) => set("status", e.target.value as AgendaEventFormValues["status"])}
-        >
-          <option value="pendiente">Pendiente</option>
-          <option value="realizado">Realizado</option>
-          <option value="cancelado">Cancelado</option>
-        </select>
-      </div>
+          onChange={(v) => set("type", v as AgendaEventFormValues["type"])}
+        />
+      </Field>
 
-      <input
-        className={inputClass}
-        placeholder={isVisita ? "Ej: Visita depto en Palermo" : "Ej: Llamar al banco"}
-        value={values.title}
-        onChange={(e) => set("title", e.target.value)}
-        required
-      />
-
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-gray-500">Fecha y hora</label>
-        <input
-          className={inputClass}
-          type="datetime-local"
-          value={values.date}
-          onChange={(e) => set("date", e.target.value)}
+      <Field label="Título">
+        <TextInput
+          placeholder={isVisita ? "Ej: Visita depto en Palermo" : "Ej: Llamar al banco"}
+          value={values.title}
+          onChange={(e) => set("title", e.target.value)}
           required
         />
-      </div>
+      </Field>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <select
-          className={inputClass}
-          value={values.leadId}
-          onChange={(e) => set("leadId", e.target.value)}
-          required={isVisita}
-        >
-          <option value="">{isVisita ? "Lead..." : "Lead (opcional)"}</option>
+      <Field label="Fecha y hora">
+        <TextInput type="datetime-local" value={values.date} onChange={(e) => set("date", e.target.value)} required />
+      </Field>
+
+      <Field label={isVisita ? "Lead" : "Lead (opcional)"}>
+        <select className={selectClass} value={values.leadId} onChange={(e) => set("leadId", e.target.value)} required={isVisita}>
+          <option value="">{isVisita ? "Elegí un lead..." : "Sin lead"}</option>
           {leadOptions.map((l) => (
             <option key={l.id} value={l.id}>
               {l.contactName}
             </option>
           ))}
         </select>
+      </Field>
+
+      <Field label={isVisita ? "Propiedad" : "Propiedad (opcional)"}>
         <select
-          className={inputClass}
+          className={selectClass}
           value={values.propertyId}
           onChange={(e) => set("propertyId", e.target.value)}
           required={isVisita}
         >
-          <option value="">{isVisita ? "Propiedad..." : "Propiedad (opcional)"}</option>
+          <option value="">{isVisita ? "Elegí una propiedad..." : "Sin propiedad"}</option>
           {propertyOptions.map((p) => (
             <option key={p.id} value={p.id}>
               {p.title}
             </option>
           ))}
         </select>
-      </div>
+      </Field>
 
-      <textarea
-        className={inputClass}
-        placeholder="Notas (opcional)"
-        value={values.notes}
-        onChange={(e) => set("notes", e.target.value)}
-      />
+      <Field label="Notas">
+        <TextArea rows={2} value={values.notes} onChange={(e) => set("notes", e.target.value)} />
+      </Field>
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="self-start bg-teal-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
-      >
-        {submitting ? "Guardando..." : submitLabel}
-      </button>
+      <Field label="Estado">
+        <Segmented
+          options={STATUS_OPTIONS}
+          value={values.status}
+          onChange={(v) => set("status", v as AgendaEventFormValues["status"])}
+        />
+      </Field>
+
+      </FormLayout>
     </form>
   );
 }

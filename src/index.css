@@ -4,6 +4,20 @@
 /* Tipografía de marca: Inter en vez de la fuente default del sistema. */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Neutros del dashboard. Son más finos que los grises de Tailwind a propósito: con filas de 44px
+     un borde gray-200 pesa demasiado y la pantalla se ve rayada. Se usan como cualquier color de
+     Tailwind (bg-surface, border-hairline, text-ink-soft). La rampa teal queda igual, sin tocar. */
+  --color-canvas: #fbfcfc;      /* fondo de la pantalla */
+  --color-surface: #ffffff;     /* tarjetas, tablas, barra superior */
+  --color-rail: #f8f9f9;        /* barra lateral */
+  --color-hairline: #e9ebee;    /* borde entre bloques */
+  --color-divider: #f1f2f4;     /* separador fuerte dentro de una tarjeta */
+  --color-divider-soft: #f4f5f6;/* separador entre filas de una lista */
+  --color-ink: #111827;         /* texto principal */
+  --color-ink-soft: #4b5563;    /* texto secundario */
+  --color-ink-mute: #767c88;    /* descripciones */
+  --color-ink-faint: #a3a8b1;   /* metadatos, placeholders */
 }
 
 body {
@@ -53,4 +67,71 @@ body {
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+/* Entrada del modal: el fondo se funde y el panel sube desde abajo (mobile) / aparece con un leve zoom (desktop). */
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Entrada de los avisos breves (toasts). */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-overlay-in {
+  animation: overlay-in 0.18s ease-out both;
+}
+
+.animate-panel-in {
+  animation: panel-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.animate-toast-in {
+  animation: toast-in 0.2s ease-out both;
+}
+
+/* Respeta a quien pidió menos movimiento en su sistema operativo: se ve todo, pero sin animaciones. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-float,
+  .animate-overlay-in,
+  .animate-panel-in,
+  .animate-toast-in,
+  .animate-pulse,
+  .animate-spin {
+    animation: none;
+  }
+}
+
+/* Foco visible y consistente en todos los campos de la app, sin repetir clases en cada <input>. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-teal-500);
+  outline-offset: 1px;
+  border-color: var(--color-teal-500);
 }

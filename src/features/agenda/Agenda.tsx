@@ -4,6 +4,13 @@
 import { useState } from "react";
 import { trpc } from "../../trpc";
 import { Modal } from "../../components/Modal";
+import { Button } from "../../components/Button";
+import { Menu } from "../../components/Menu";
+import { EmptyState } from "../../components/EmptyState";
+import { SkeletonList } from "../../components/Skeleton";
+import { useToast } from "../../lib/toast";
+import { useNewParam } from "../../lib/useNewParam";
+import { usePageChrome } from "../../lib/pageChrome";
 import { AgendaEventForm, emptyAgendaEventForm } from "./AgendaEventForm";
 import type { AgendaEventFormValues } from "./AgendaEventForm";
 import { groupAgendaEvents, AGENDA_BUCKET_LABELS } from "./agendaGrouping";
@@ -16,7 +23,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 const TYPE_STYLES: Record<string, string> = {
   visita: "bg-teal-50 text-teal-700",
-  tarea: "bg-gray-100 text-gray-700",
+  tarea: "bg-gray-100 text-ink-soft",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -29,8 +36,8 @@ const BUCKET_HEADER_STYLES: Record<AgendaBucketKey, string> = {
   vencidos: "text-red-700",
   hoy: "text-amber-700",
   manana: "text-teal-700",
-  semana: "text-gray-700",
-  masAdelante: "text-gray-700",
+  semana: "text-ink-faint",
+  masAdelante: "text-ink-faint",
 };
 
 const BUCKET_ORDER: AgendaBucketKey[] = ["vencidos", "hoy", "manana", "semana", "masAdelante"];
@@ -71,6 +78,8 @@ function toMutationInput(values: AgendaEventFormValues) {
   };
 }
 
+// Una fila de la agenda. La hora va en una canaleta de ancho fijo a la izquierda y el tipo se marca
+// con una barra de color, para poder leer la columna de horarios de un saque en vez de fila por fila.
 function EventItem({
   event,
   onEdit,
@@ -82,53 +91,76 @@ function EventItem({
   onDelete: () => void;
   onComplete: () => void;
 }) {
-  const time = new Date(event.date).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  const date = new Date(event.date);
+  const time = date.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  const done = event.status !== "pendiente";
+
   return (
-    <li className="border border-gray-200 rounded-lg p-4">
-      <div className="flex flex-wrap items-center gap-2 mb-1">
-        <span className="text-xs font-medium text-gray-500">{time}</span>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_STYLES[event.type] ?? "bg-gray-100 text-gray-700"}`}>
+    <li className="flex items-center gap-3 border-b border-divider-soft pr-3 transition-colors last:border-b-0 hover:bg-gray-50/70">
+      <span className={`h-11 w-[3px] flex-shrink-0 ${event.type === "visita" ? "bg-teal-500" : "bg-gray-200"}`} />
+
+      <span className="w-11 flex-shrink-0 text-[13px] font-semibold tabular-nums text-ink">{time}</span>
+
+      <span className="hidden w-16 flex-shrink-0 sm:block">
+        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${TYPE_STYLES[event.type] ?? "bg-gray-100 text-ink-soft"}`}>
           {TYPE_LABELS[event.type] ?? event.type}
         </span>
-        {event.status !== "pendiente" && (
-          <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-            {STATUS_LABELS[event.status] ?? event.status}
+      </span>
+
+      <span className="min-w-0 flex-1 py-2">
+        <span className={`block truncate text-[13px] font-semibold ${done ? "text-ink-mute line-through" : "text-ink"}`}>
+          {event.title}
+        </span>
+        {(event.lead || event.property) && (
+          <span className="block truncate text-[11.5px] text-ink-mute">
+            {event.lead?.contactName}
+            {event.lead && event.property ? " · " : ""}
+            {event.property?.title}
           </span>
         )}
-      </div>
-      <p className="font-medium break-words">{event.title}</p>
-      {(event.lead || event.property) && (
-        <p className="text-sm text-gray-600 mt-1 break-words">
-          {event.lead && <>Lead: {event.lead.contactName}</>}
-          {event.lead && event.property && " — "}
-          {event.property && <>Propiedad: {event.property.title}</>}
-        </p>
+      </span>
+
+      {done && (
+        <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10.5px] font-semibold text-ink-soft">
+          {STATUS_LABELS[event.status] ?? event.status}
+        </span>
       )}
-      {event.notes && <p className="text-sm text-gray-500 mt-1 break-words">Notas: {event.notes}</p>}
-      <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
-        {event.status === "pendiente" && (
-          <button onClick={onComplete} className="text-teal-700 hover:underline">
-            Marcar realizado
-          </button>
-        )}
-        <button onClick={onEdit} className="text-teal-700 hover:underline">
-          Editar
+
+      {!done && (
+        <button
+          type="button"
+          onClick={onComplete}
+          className="hidden h-7 flex-shrink-0 items-center gap-1.5 rounded-lg border border-hairline px-2.5 text-[11.5px] font-medium text-ink-soft transition-colors hover:bg-gray-50 sm:flex"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 text-teal-600">
+            <path d="M5 12.5l4.5 4.5L19 7" />
+          </svg>
+          Realizado
         </button>
-        <button onClick={onDelete} className="text-red-600 hover:underline">
-          Eliminar
-        </button>
-      </div>
+      )}
+
+      <Menu
+        items={[
+          ...(done ? [] : [{ label: "Marcar como realizado", onSelect: onComplete }]),
+          { label: "Editar", onSelect: onEdit },
+          { label: "Eliminar", onSelect: onDelete, danger: true },
+        ]}
+      />
     </li>
   );
 }
 
 export function Agenda() {
   const utils = trpc.useUtils();
+  const toast = useToast();
   const [showHistorial, setShowHistorial] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<AgendaEvent | null>(null);
 
-  const list = trpc.agenda.list.useQuery({ includeDone: showHistorial });
+  // Se guarda en una constante porque las actualizaciones optimistas necesitan tocar exactamente
+  // esta misma entrada de la caché.
+  const listInput = { includeDone: showHistorial };
+  const list = trpc.agenda.list.useQuery(listInput);
   const leadsQuery = trpc.leads.listOptions.useQuery();
   const propertiesQuery = trpc.properties.listOptions.useQuery();
 
@@ -139,22 +171,65 @@ export function Agenda() {
     onSuccess: () => {
       utils.agenda.list.invalidate();
       setModalOpen(false);
+      toast("Evento agendado.");
     },
+    onError: () => toast("No se pudo agendar el evento.", "error"),
   });
+
   const update = trpc.agenda.update.useMutation({
     onSuccess: () => {
       utils.agenda.list.invalidate();
       setModalOpen(false);
+      toast("Cambios guardados.");
     },
+    onError: () => toast("No se pudieron guardar los cambios.", "error"),
   });
+
+  // "Marcar realizado" usa su propia instancia de la misma mutation para poder ser optimista
+  // (el evento sale de la lista al instante) sin afectar al guardado del formulario de arriba.
+  const completeEvent = trpc.agenda.update.useMutation({
+    onMutate: async ({ id }) => {
+      await utils.agenda.list.cancel(listInput);
+      const previous = utils.agenda.list.getData(listInput);
+      utils.agenda.list.setData(listInput, (old) => {
+        if (!old) return old;
+        // Con el historial oculto, un evento realizado ya no pertenece a esta lista: se saca.
+        if (!showHistorial) return old.filter((e) => e.id !== id);
+        return old.map((e) => (e.id === id ? { ...e, status: "realizado" } : e));
+      });
+      return { previous };
+    },
+    onSuccess: () => toast("Marcado como realizado."),
+    onError: (_error, _variables, context) => {
+      if (context?.previous) utils.agenda.list.setData(listInput, context.previous);
+      toast("No se pudo marcar como realizado.", "error");
+    },
+    onSettled: () => utils.agenda.list.invalidate(),
+  });
+
+  // Borrado optimista: el evento desaparece al instante y, si el servidor falla, vuelve a su lugar.
   const deleteEvent = trpc.agenda.delete.useMutation({
-    onSuccess: () => utils.agenda.list.invalidate(),
+    onMutate: async ({ id }) => {
+      await utils.agenda.list.cancel(listInput);
+      const previous = utils.agenda.list.getData(listInput);
+      utils.agenda.list.setData(listInput, (old) => (old ? old.filter((e) => e.id !== id) : old));
+      return { previous };
+    },
+    onSuccess: () => toast("Evento eliminado."),
+    onError: (_error, _variables, context) => {
+      if (context?.previous) utils.agenda.list.setData(listInput, context.previous);
+      toast("No se pudo eliminar el evento.", "error");
+    },
+    onSettled: () => utils.agenda.list.invalidate(),
   });
 
   function openCreate() {
     setEditing(null);
     setModalOpen(true);
   }
+
+  // El botón flotante de alta rápida llega acá con ?new=1 y abre este mismo formulario.
+  useNewParam(openCreate);
 
   function openEdit(e: AgendaEvent) {
     setEditing(e);
@@ -177,70 +252,104 @@ export function Agenda() {
 
   const events = list.data ?? [];
   const groups = groupAgendaEvents(events);
+  const pendingCount = events.filter((e) => e.status === "pendiente").length;
+
+  usePageChrome(
+    "Agenda",
+    pendingCount > 0 ? `${pendingCount} ${pendingCount === 1 ? "evento pendiente" : "eventos pendientes"}` : undefined,
+  );
 
   return (
-    <div className="max-w-3xl mx-auto p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Agenda</h1>
-        <button
-          onClick={openCreate}
-          className="bg-teal-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-teal-700"
-        >
-          + Agregar
-        </button>
+    <div className="mx-auto max-w-4xl p-4 sm:p-5">
+
+      <div className="mb-3 flex items-center gap-2">
+        <div className="flex gap-0.5 rounded-lg border border-hairline bg-gray-50 p-0.5">
+          <button
+            type="button"
+            onClick={() => setShowHistorial(false)}
+            className={`h-6 rounded-md px-2.5 text-xs transition-colors ${
+              showHistorial ? "font-medium text-ink-mute" : "bg-surface font-semibold text-ink shadow-sm"
+            }`}
+          >
+            Pendientes
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowHistorial(true)}
+            className={`h-6 rounded-md px-2.5 text-xs transition-colors ${
+              showHistorial ? "bg-surface font-semibold text-ink shadow-sm" : "font-medium text-ink-mute"
+            }`}
+          >
+            Historial
+          </button>
+        </div>
+
+        <Button size="sm" onClick={openCreate} className="ml-auto hidden md:inline-flex">
+          + Nuevo evento
+        </Button>
       </div>
 
-      <button onClick={() => setShowHistorial((v) => !v)} className="text-sm text-teal-700 hover:underline mb-4">
-        {showHistorial ? "Ocultar historial" : "Ver historial (realizados y cancelados)"}
-      </button>
-
-      {list.isLoading && <p className="text-gray-500">Cargando...</p>}
+      {list.isLoading && <SkeletonList count={4} />}
 
       {!list.isLoading && events.length === 0 && (
-        <p className="text-gray-500 border border-dashed border-gray-300 rounded-lg p-6 text-center">
-          Todavía no cargaste ningún evento. Tocá "+ Agregar" para crear el primero.
-        </p>
+        <EmptyState
+          icon="📅"
+          title="Tu agenda está vacía"
+          description="Anotá una visita (con el lead y la propiedad que la motivan) o una tarea suelta, con día y hora."
+          actionLabel="+ Agendar lo primero"
+          onAction={openCreate}
+        />
       )}
 
-      <div className="flex flex-col gap-6">
-        {BUCKET_ORDER.map((key) => {
-          const items = groups[key];
-          if (items.length === 0) return null;
-          return (
-            <div key={key}>
-              <h2 className={`text-sm font-semibold mb-2 ${BUCKET_HEADER_STYLES[key]}`}>{AGENDA_BUCKET_LABELS[key]}</h2>
-              <ul className="flex flex-col gap-3">
-                {items.map((e) => (
+      {events.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-hairline bg-surface">
+          {BUCKET_ORDER.map((key) => {
+            const items = groups[key];
+            if (items.length === 0) return null;
+            return (
+              <div key={key}>
+                <div className="flex items-center gap-2 border-b border-hairline bg-gray-50/60 px-4 py-2">
+                  <span className={`text-[10px] font-semibold tracking-[0.06em] ${BUCKET_HEADER_STYLES[key]}`}>
+                    {AGENDA_BUCKET_LABELS[key].toUpperCase()}
+                  </span>
+                  <span className="ml-auto text-[11px] tabular-nums text-ink-faint">{items.length}</span>
+                </div>
+                <ul className="flex flex-col">
+                  {items.map((e) => (
+                    <EventItem
+                      key={e.id}
+                      event={e}
+                      onEdit={() => openEdit(e)}
+                      onDelete={() => handleDelete(e)}
+                      onComplete={() => completeEvent.mutate({ id: e.id, status: "realizado" })}
+                    />
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+
+          {showHistorial && groups.historial.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 border-b border-hairline bg-gray-50/60 px-4 py-2">
+                <span className="text-[10px] font-semibold tracking-[0.06em] text-ink-faint">HISTORIAL</span>
+                <span className="ml-auto text-[11px] tabular-nums text-ink-faint">{groups.historial.length}</span>
+              </div>
+              <ul className="flex flex-col">
+                {groups.historial.map((e) => (
                   <EventItem
                     key={e.id}
                     event={e}
                     onEdit={() => openEdit(e)}
                     onDelete={() => handleDelete(e)}
-                    onComplete={() => update.mutate({ id: e.id, status: "realizado" })}
+                    onComplete={() => completeEvent.mutate({ id: e.id, status: "realizado" })}
                   />
                 ))}
               </ul>
             </div>
-          );
-        })}
-
-        {showHistorial && groups.historial.length > 0 && (
-          <div>
-            <h2 className="text-sm font-semibold mb-2 text-gray-700">Historial</h2>
-            <ul className="flex flex-col gap-3">
-              {groups.historial.map((e) => (
-                <EventItem
-                  key={e.id}
-                  event={e}
-                  onEdit={() => openEdit(e)}
-                  onDelete={() => handleDelete(e)}
-                  onComplete={() => update.mutate({ id: e.id, status: "realizado" })}
-                />
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Editar evento" : "Nuevo evento"}>
         <AgendaEventForm

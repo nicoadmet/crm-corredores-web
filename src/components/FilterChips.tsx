@@ -1,4 +1,5 @@
 // Fila de chips seleccionables para filtrar una lista (selección única, con opción "Todos").
+// Se usa en celular; en escritorio los mismos filtros se muestran como desplegables (FilterSelect).
 export function FilterChips({
   label,
   options,
@@ -12,11 +13,13 @@ export function FilterChips({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-gray-500 flex-shrink-0">{label}:</span>
+      <span className="flex-shrink-0 text-xs text-ink-faint">{label}:</span>
       <button
+        type="button"
         onClick={() => onChange("")}
-        className={`text-xs px-2 py-1 rounded-full border ${
-          value === "" ? "bg-teal-600 text-white border-teal-600" : "border-gray-300 text-gray-600 hover:bg-gray-50"
+        aria-pressed={value === ""}
+        className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+          value === "" ? "border-teal-600 bg-teal-600 text-white" : "border-gray-300 text-gray-600 hover:bg-gray-50"
         }`}
       >
         Todos
@@ -24,9 +27,11 @@ export function FilterChips({
       {options.map((opt) => (
         <button
           key={opt.value}
+          type="button"
           onClick={() => onChange(opt.value)}
-          className={`text-xs px-2 py-1 rounded-full border ${
-            value === opt.value ? "bg-teal-600 text-white border-teal-600" : "border-gray-300 text-gray-600 hover:bg-gray-50"
+          aria-pressed={value === opt.value}
+          className={`rounded-full border px-2.5 py-1.5 text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-1 ${
+            value === opt.value ? "border-teal-600 bg-teal-600 text-white" : "border-gray-300 text-gray-600 hover:bg-gray-50"
           }`}
         >
           {opt.label}
