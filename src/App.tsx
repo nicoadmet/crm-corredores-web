@@ -4,6 +4,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Home } from "./pages/Home";
 import { Auth } from "./features/auth/Auth";
+import { ResetPassword } from "./features/auth/ResetPassword";
 import { ProtectedApp } from "./pages/ProtectedApp";
 import { Properties } from "./features/properties/Properties";
 import { PropertyDetail } from "./features/properties/PropertyDetail";
@@ -22,6 +23,8 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/precios" element={<Navigate to="/#precios" replace />} />
         <Route path="/login" element={<Auth />} />
+        {/* Adonde vuelve el corredor desde el mail de recuperar contraseña. */}
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/app" element={<ProtectedApp />}>
           <Route index element={<Today />} />
           <Route path="properties" element={<Properties />} />
