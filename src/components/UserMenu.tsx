@@ -2,11 +2,14 @@
 // ("rail") y en la barra superior del celular ("compact"), donde no hay barra lateral.
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { trpc } from "../trpc";
 
-function initialsFor(email: string): string {
-  const name = email.split("@")[0] ?? "";
-  const parts = name.split(/[._-]+/).filter(Boolean);
-  const letters = parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2);
+function initialsFor(value: string): string {
+  // Sirve tanto para un nombre real ("Nicolás Admet" → NA) como para un email de respaldo
+  // ("nico.admet@..." → NA), separando por espacio, punto, guión o guión bajo.
+  const base = value.includes("@") ? (value.split("@")[0] ?? "") : value;
+  const parts = base.split(/[\s._-]+/).filter(Boolean);
+  const letters = parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : base.slice(0, 2);
   return letters.toUpperCase() || "?";
 }
 
@@ -22,7 +25,12 @@ export function UserMenu({
   variant?: "rail" | "compact";
 }) {
   const [open, setOpen] = useState(false);
-  const initials = initialsFor(email);
+  // El nombre de la cuenta es el que el corredor edita en "Mi cuenta" y el que firma sus páginas
+  // públicas. Mostrarlo acá (y no el email) es lo que hace que ese campo tenga sentido visible.
+  const account = trpc.account.get.useQuery();
+  const displayName = account.data?.name?.trim() || email;
+  const showEmailApart = displayName !== email;
+  const initials = initialsFor(displayName);
 
   return (
     <div className="relative">
@@ -53,8 +61,8 @@ export function UserMenu({
               {initials}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-medium text-ink-soft">{email}</span>
-              <span className="block text-[10.5px] text-ink-faint">Plan Free</span>
+              <span className="block truncate text-xs font-medium text-ink-soft">{displayName}</span>
+              <span className="block truncate text-[10.5px] text-ink-faint">{showEmailApart ? email : "Plan Free"}</span>
             </span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-4 w-4 flex-shrink-0 text-ink-faint">
               <path d="M5 12h.01M12 12h.01M19 12h.01" />
@@ -73,7 +81,8 @@ export function UserMenu({
           }`}
         >
           <div className="border-b border-divider px-3 py-2.5">
-            <p className="truncate text-xs font-medium text-ink">{email}</p>
+            <p className="truncate text-xs font-medium text-ink">{displayName}</p>
+            {showEmailApart && <p className="truncate text-[10.5px] text-ink-faint">{email}</p>}
             <p className="text-[10.5px] text-ink-faint">Plan Free</p>
           </div>
           <button
