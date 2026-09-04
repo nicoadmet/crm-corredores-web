@@ -3,6 +3,7 @@
 // Precios ya no es una página propia: es la sección #precios del Home (ver src/pages/Home.tsx).
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Home } from "./pages/Home";
+import { Privacidad, Terminos } from "./pages/Legal";
 import { Auth } from "./features/auth/Auth";
 import { ResetPassword } from "./features/auth/ResetPassword";
 import { ProtectedApp } from "./pages/ProtectedApp";
@@ -22,6 +23,8 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/precios" element={<Navigate to="/#precios" replace />} />
+        <Route path="/privacidad" element={<Privacidad />} />
+        <Route path="/terminos" element={<Terminos />} />
         <Route path="/login" element={<Auth />} />
         {/* Adonde vuelve el corredor desde el mail de recuperar contraseña. */}
         <Route path="/reset-password" element={<ResetPassword />} />

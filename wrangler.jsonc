@@ -1,8 +1,13 @@
 // Configuración de Cloudflare Workers: sirve el build estático (carpeta dist) del frontend.
+// not_found_handling en modo SPA: cualquier ruta que no sea un archivo del build (ej. /privacidad,
+// /terminos, /login, /app/leads) devuelve index.html con 200 para que React Router resuelva la vista.
+// Sin esto, entrar por URL directa a una ruta interna daba 404 (Google verifica /privacidad y /terminos
+// entrando directo al enlace, así que esto es requisito para publicar la app OAuth).
 {
   "name": "crm-corredores-web",
   "compatibility_date": "2026-07-28",
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
   }
 }

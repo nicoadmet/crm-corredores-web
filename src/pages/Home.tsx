@@ -496,7 +496,7 @@ export function Home() {
               </p>
             </div>
 
-            <div className="flex gap-16">
+            <div className="flex flex-wrap gap-12 sm:gap-16">
               <div>
                 <h4 className="text-sm font-semibold text-slate-900">Producto</h4>
                 <ul className="mt-4 space-y-3 text-sm text-slate-500">
@@ -529,6 +529,22 @@ export function Home() {
                   <li>
                     <Link to="/login" className="hover:text-slate-900">
                       Empezar gratis
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900">Legal</h4>
+                <ul className="mt-4 space-y-3 text-sm text-slate-500">
+                  <li>
+                    <Link to="/privacidad" className="hover:text-slate-900">
+                      Privacidad
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/terminos" className="hover:text-slate-900">
+                      Términos
                     </Link>
                   </li>
                 </ul>
