@@ -19,10 +19,10 @@ export default defineConfig({
       srcDir: 'src',
       filename: 'sw.ts',
       manifest: {
-        name: 'CRM Corredores',
-        short_name: 'CRM Corredores',
+        name: 'InmoCRM',
+        short_name: 'InmoCRM',
         description: 'Asistente de bolsillo para corredores inmobiliarios',
-        theme_color: '#ffffff',
+        theme_color: '#0d9488',
         display: 'standalone',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

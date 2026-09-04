@@ -5,8 +5,8 @@ import { Link } from "react-router-dom";
 import { trpc } from "../trpc";
 
 function initialsFor(value: string): string {
-  // Sirve tanto para un nombre real ("Nicolás Admet" → NA) como para un email de respaldo
-  // ("nico.admet@..." → NA), separando por espacio, punto, guión o guión bajo.
+  // Sirve tanto para un nombre real como para un email de respaldo
+  // , separando por espacio, punto, guión o guión bajo.
   const base = value.includes("@") ? (value.split("@")[0] ?? "") : value;
   const parts = base.split(/[\s._-]+/).filter(Boolean);
   const letters = parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : base.slice(0, 2);

@@ -1,6 +1,9 @@
 // Barra de navegación pública: la Home es una sola página con secciones, por eso los links de contenido son anclas (#seccion) en vez de rutas separadas.
-import { useState } from "react";
-import { Link } from "react-router-dom";
+// Ojo: la misma Navbar se usa en /privacidad y /terminos, donde esas secciones no existen. Un href="#pilares"
+// suelto resuelve contra la ruta actual y deja la URL en /terminos#pilares sin ir a ningún lado, así que fuera
+// del home los links tienen que ser <Link to="/#pilares"> (navegan al home y el efecto de hash hace el scroll).
+import { useState, type ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 const sections = [
   { href: "#pilares", label: "Funcionalidades" },
@@ -8,8 +11,37 @@ const sections = [
   { href: "#precios", label: "Precios" },
 ];
 
+// En el home el ancla nativa alcanza (y no ensucia el historial); fuera del home hace falta cambiar de ruta.
+function SectionLink({
+  href,
+  onHome,
+  onNavigate,
+  className,
+  children,
+}: {
+  href: string;
+  onHome: boolean;
+  onNavigate: () => void;
+  className: string;
+  children: ReactNode;
+}) {
+  if (onHome) {
+    return (
+      <a href={href} onClick={onNavigate} className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link to={`/${href}`} onClick={onNavigate} className={className}>
+      {children}
+    </Link>
+  );
+}
+
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const onHome = useLocation().pathname === "/";
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur">
@@ -20,13 +52,15 @@ export function Navbar() {
 
         <div className="hidden items-center gap-8 md:flex">
           {sections.map((section) => (
-            <a
+            <SectionLink
               key={section.href}
               href={section.href}
+              onHome={onHome}
+              onNavigate={() => setOpen(false)}
               className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
             >
               {section.label}
-            </a>
+            </SectionLink>
           ))}
         </div>
 
@@ -64,14 +98,15 @@ export function Navbar() {
       {open && (
         <div className="flex flex-col gap-4 border-t border-slate-200 bg-white px-6 py-4 md:hidden">
           {sections.map((section) => (
-            <a
+            <SectionLink
               key={section.href}
               href={section.href}
-              onClick={() => setOpen(false)}
+              onHome={onHome}
+              onNavigate={() => setOpen(false)}
               className="text-sm font-medium text-slate-700"
             >
               {section.label}
-            </a>
+            </SectionLink>
           ))}
           <Link to="/login" onClick={() => setOpen(false)} className="text-sm font-medium text-slate-700">
             Iniciar sesión

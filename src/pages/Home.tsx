@@ -77,10 +77,15 @@ function GlobeIcon() {
 export function Home() {
   const location = useLocation();
 
+  // Cuando se llega con hash desde otra ruta (ej. /terminos -> /#precios) el Home recién se monta,
+  // así que el scroll se difiere un frame para que la sección ya esté maquetada.
   useEffect(() => {
     if (!location.hash) return;
-    const target = document.querySelector(location.hash);
-    target?.scrollIntoView({ behavior: "smooth" });
+    const hash = location.hash;
+    const frame = requestAnimationFrame(() => {
+      document.querySelector(hash)?.scrollIntoView({ behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [location.hash]);
 
   return (
